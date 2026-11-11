@@ -10,3 +10,15 @@ npm-debug.*
 *.orig.*
 web-build/
 .DS_Store
+signing/
+*.jks
+
+# Android build files
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/cosmos-notes-release.jks
+
+# Local Android keys and backups
+android/app/debug.keystore
+android/app/build.gradle.backup
