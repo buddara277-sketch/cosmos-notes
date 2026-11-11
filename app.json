@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Cosmos Notes",
+    "slug": "cosmos-notes-deepseek",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#05091D"
+    },
+    "android": {
+      "package": "com.cosmosa27.cosmosnotes",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#05091D"
+      }
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f90f8d34-78f5-4ad7-a449-7cd46b9c3469"
+      }
+    }
+  }
+}
