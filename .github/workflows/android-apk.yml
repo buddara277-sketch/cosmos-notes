@@ -33,12 +33,15 @@ jobs:
       - name: Prepare release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.COSMOS_KEYSTORE_BASE64 }}
+          COSMOS_KEYSTORE_PASSWORD: ${{ secrets.COSMOS_KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "Keystore secret is missing"
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/cosmos-notes-release.jks
+          test -s android/app/cosmos-notes-release.jks
+          keytool -list -keystore android/app/cosmos-notes-release.jks -storepass "$COSMOS_KEYSTORE_PASSWORD" -alias cosmosnotes >/dev/null
 
       - name: Build signed release APK
         env:

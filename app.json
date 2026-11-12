@@ -1,26 +1,35 @@
+
 {
   "expo": {
     "name": "Cosmos Notes",
     "slug": "cosmos-notes-deepseek",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/Неоновая планета с кольцами.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#05091D"
-    },
     "android": {
       "package": "com.cosmosa27.cosmosnotes",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/Неоновая планета с кольцами.png",
         "backgroundColor": "#05091D"
       }
     },
     "ios": {
       "supportsTablet": true
     },
+    "plugins": [
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Cosmos Notes использует микрофон для голосового ввода заметок.",
+          "speechRecognitionPermission": "Cosmos Notes использует распознавание речи для создания заметок.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f90f8d34-78f5-4ad7-a449-7cd46b9c3469"
