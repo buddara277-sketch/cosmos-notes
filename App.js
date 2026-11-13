@@ -520,61 +520,120 @@ function MainApp() {
       });
     return () => { mounted = false; };
   }, []);
-  const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) => {
-    if (Platform.OS === 'web') {
-      Alert.alert('Напоминания', 'Локальные уведомления доступны в установленной версии Android.');
+  
+const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) => {
+  if (Platform.OS === 'web') {
+    Alert.alert('Напоминания', 'Локальные уведомления доступны в установленной версии Android.');
+    return false;
+  }
+
+  if (
+    !(scheduledDate instanceof Date) ||
+    Number.isNaN(scheduledDate.getTime()) ||
+    scheduledDate <= new Date()
+  ) {
+    Alert.alert('Неверное время', 'Выбери время в будущем.');
+    return false;
+  }
+
+  try {
+    if (Platform.OS === 'android') {
+      // Сначала создаём канал уведомлений
+      await Notifications.setNotificationChannelAsync('calendar-reminders', {
+        name: 'Напоминания календаря',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    // Проверяем разрешение на показ уведомлений
+    let permission = await Notifications.getPermissionsAsync();
+
+    if (!permission.granted) {
+      permission = await Notifications.requestPermissionsAsync();
+    }
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Нет разрешения',
+        'Разреши Cosmos Notes отправлять уведомления в настройках телефона.'
+      );
       return false;
     }
-    if (!(scheduledDate instanceof Date) || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
-      Alert.alert('Неверное время', 'Выбери время в будущем.');
-      return false;
-    }
-    try {
-      let permission = await Notifications.getPermissionsAsync();
-      if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Нет разрешения', 'Уведомления запрещены. Прежнее напоминание останется.');
+
+    // Проверяем разрешение на точное время Android
+    if (Platform.OS === 'android') {
+      let exactPermission = await Notifications.getExactAlarmPermissionsAsync();
+
+      if (!exactPermission.granted) {
+        exactPermission = await Notifications.requestExactAlarmPermissionsAsync();
+      }
+
+      if (!exactPermission.granted) {
+        Alert.alert(
+          'Нужен доступ к точным напоминаниям',
+          'Разреши Cosmos Notes устанавливать будильники и напоминания в настройках Android.'
+        );
         return false;
       }
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('calendar-reminders', {
-          name: 'Напоминания календаря',
-          importance: Notifications.AndroidImportance.HIGH,
-        });
-      }
-      const newId = await Notifications.scheduleNotificationAsync({
-        content: { title: 'Cosmos Notes', body: reminderText, sound: true },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: scheduledDate,
-          ...(Platform.OS === 'android' ? { channelId: 'calendar-reminders' } : {}),
-        },
-      });
-      const previous = calendarReminders[dateKey];
-      if (previous?.id) {
-        try {
-          await Notifications.cancelScheduledNotificationAsync(previous.id);
-        } catch (error) {
-          console.warn('Не удалось отменить прежнее уведомление:', error);
-        }
-      }
-      const updated = {
-        ...calendarReminders,
-        [dateKey]: {
-          id: newId,
-          timestamp: scheduledDate.getTime(),
-          time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        },
-      };
-      await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
-      setCalendarReminders(updated);
-      return true;
-    } catch (error) {
-      console.error('Ошибка напоминания:', error);
-      Alert.alert('Ошибка', 'Не удалось создать напоминание.');
-      return false;
     }
-  };
+
+    const newId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Cosmos Notes',
+        body: reminderText,
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: scheduledDate,
+        ...(Platform.OS === 'android'
+          ? {
+              channelId: 'calendar-reminders',
+              delivery: 'alarmClock',
+            }
+          : {}),
+      },
+    });
+
+    const previous = calendarReminders[dateKey];
+
+    if (previous?.id) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(previous.id);
+      } catch (error) {
+        console.warn('Не удалось отменить прежнее уведомление:', error);
+      }
+    }
+
+    const updated = {
+      ...calendarReminders,
+      [dateKey]: {
+        id: newId,
+        timestamp: scheduledDate.getTime(),
+        time: scheduledDate.toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    };
+
+    await AsyncStorage.setItem(
+      CALENDAR_REMINDERS_KEY,
+      JSON.stringify(updated)
+    );
+
+    setCalendarReminders(updated);
+    return true;
+
+  } catch (error) {
+    console.error('Ошибка напоминания:', error);
+    Alert.alert('Ошибка', 'Не удалось создать напоминание.');
+    return false;
+  }
+};
+
   const cancelCalendarReminder = async (dateKey) => {
     const previous = calendarReminders[dateKey];
     if (!previous) return;
@@ -1074,10 +1133,7 @@ function MainApp() {
                           setReactionTargetId(null);
                           setShowNotesList(false);
                         }}
-                        onLongPress={() => setReactionTargetId(
-                          reactionTargetId === note.id ? null : note.id
-                        )}
-                        delayLongPress={350}
+                        
                         style={{ flex: 1 }}
                       >
                         <Text style={styles.noteCardTitle}>
@@ -1090,55 +1146,6 @@ function MainApp() {
                           {note.text || 'Нет текста'}
                         </Text>
                       </Pressable>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
-                        {Array.isArray(note.reactions) ? note.reactions.map(emoji => (
-                          <Text key={emoji} style={{ fontSize: 18 }}>{emoji}</Text>
-                        )) : null}
-                        <Pressable
-                          onPress={() => setReactionTargetId(
-                            reactionTargetId === note.id ? null : note.id
-                          )}
-                          style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 5,
-                            borderRadius: 10,
-                            backgroundColor: 'rgba(75,170,255,0.2)',
-                            borderWidth: 1,
-                            borderColor: '#78CFFF'
-                          }}
-                        >
-                          <Text style={{ color: '#FFFFFF', fontSize: 18 }}>✦</Text>
-                        </Pressable>
-                      </View>
-                      {reactionTargetId === note.id ? (
-                        <View style={{
-                          flexDirection: 'row',
-                          flexWrap: 'wrap',
-                          gap: 8,
-                          marginTop: 10,
-                          padding: 8,
-                          borderRadius: 12,
-                          backgroundColor: 'rgba(7,20,48,0.85)',
-                          borderWidth: 1,
-                          borderColor: '#78CFFF'
-                        }}>
-                          {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(emoji => (
-                            <Pressable
-                              key={emoji}
-                              onPress={() => toggleNoteReaction(note.id, emoji)}
-                              style={{
-                                padding: 5,
-                                borderRadius: 9,
-                                backgroundColor: note.reactions?.includes(emoji)
-                                  ? 'rgba(75,170,255,0.35)'
-                                  : 'rgba(255,255,255,0.06)'
-                              }}
-                            >
-                              <Text style={{ fontSize: 21 }}>{emoji}</Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      ) : null}
                       <CosmicButton
                         title=""
                         icon="trash-outline"

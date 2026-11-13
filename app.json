@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Cosmos Notes",
@@ -8,6 +9,9 @@
     "userInterfaceStyle": "dark",
     "android": {
       "package": "com.cosmosa27.cosmosnotes",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/Неоновая планета с кольцами.png",
