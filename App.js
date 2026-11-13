@@ -629,7 +629,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
 
   } catch (error) {
     console.error('Ошибка напоминания:', error);
-    Alert.alert('Ошибка', 'Не удалось создать напоминание.');
+    Alert.alert('Ошибка напоминания', String(error?.message || error));
     return false;
   }
 };
