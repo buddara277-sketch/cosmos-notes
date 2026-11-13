@@ -1,7 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-
-
-
 import {
   View,
   Text,
@@ -32,7 +29,6 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
-
 // --- КОНСТАНТЫ ---
 const NOTES_KEY = 'cosmos-notes-v2';
 const DEEPSEEK_KEY = 'deepseek-last-url';
@@ -49,7 +45,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-
 function getLocalDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -57,11 +52,9 @@ function getLocalDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 const DEFAULT_CURRENCY = 'EUR';
-
 const CURRENCIES = [
   'EUR', 'USD', 'RUB', 'GBP', 'CNY', 'JPY', 'CHF', 'CAD', 'AUD', 'INR', 'TRY', 'AED', 'PLN', 'CZK', 'KZT', 'UAH', 'GEL', 'THB', 'BRL', 'VND', 'IDR', 'SEK', 'NOK', 'DKK', 'HUF', 'RON',
 ];
-
 const CURRENCY_NAMES = {
   EUR: 'Евро',
   USD: 'Доллар США',
@@ -90,16 +83,13 @@ const CURRENCY_NAMES = {
   HUF: 'Венгерский форинт',
   RON: 'Румынский лей',
 };
-
 // --- ГЕНЕРАТОР ЗВЁЗД ---
 function createStars(count) {
   let seed = 274819;
-
   function random() {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
   }
-
   return Array.from({ length: count }, () => ({
     left: `${random() * 100}%`,
     top: `${random() * 100}%`,
@@ -107,9 +97,7 @@ function createStars(count) {
     opacity: 0.3 + random() * 0.7,
   }));
 }
-
 const stars = createStars(240);
-
 function StarBackground() {
   return (
     <View pointerEvents="none" style={styles.stars}>
@@ -133,7 +121,6 @@ function StarBackground() {
     </View>
   );
 }
-
 // --- ОБЩАЯ КОСМИЧЕСКАЯ КНОПКА ---
 function CosmicButton({
   title,
@@ -157,8 +144,7 @@ function CosmicButton({
         style,
       ]}
     >
-      {!isSolidBlue && <View pointerEvents="none" style={styles.cosmicInnerFrame} />
-}
+      {!isSolidBlue && <View pointerEvents="none" style={styles.cosmicInnerFrame} />}
       {icon ? (
         <Ionicons
           name={icon}
@@ -180,7 +166,6 @@ function CosmicButton({
     </Pressable>
   );
 }
-
 // --- КВАДРАТНАЯ КНОПКА ИНСТРУМЕНТА ---
 function ToolButton({ title, icon, onPress }) {
   return (
@@ -197,7 +182,6 @@ function ToolButton({ title, icon, onPress }) {
     </Pressable>
   );
 }
-
 // --- ФОРМАТИРОВАНИЕ ДАТЫ ---
 function formatDate(value) {
   try {
@@ -206,7 +190,6 @@ function formatDate(value) {
     return '';
   }
 }
-
 // --- ГЛАВНЫЙ КОМПОНЕНТ ---
 export default function App() {
   return (
@@ -217,7 +200,6 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
 function MainApp() {
   const [activeScreen, setActiveScreen] = useState('start');
   const [notes, setNotes] = useState([]);
@@ -226,15 +208,11 @@ function MainApp() {
   const [showNotesList, setShowNotesList] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [notesLoadFailed, setNotesLoadFailed] = useState(false);
-
   const [deepSeekUrl, setDeepSeekUrl] = useState('https://chat.deepseek.com/');
   const [deepSeekUrlLoaded, setDeepSeekUrlLoaded] = useState(false);
-
   const [speechAvailable, setSpeechAvailable] = useState(false);
   const [isListening, setIsListening] = useState(false);
-
   const [toolScreen, setToolScreen] = useState('tools');
-
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
   const [calendarNoteOpen, setCalendarNoteOpen] = useState(false);
@@ -242,16 +220,14 @@ function MainApp() {
   const [calendarNotesLoaded, setCalendarNotesLoaded] = useState(false);
   const [calendarNotesLoadFailed, setCalendarNotesLoadFailed] = useState(false);
   const [calendarNoteText, setCalendarNoteText] = useState('');
-const [calendarReminders, setCalendarReminders] = useState({});
-const [calendarRemindersLoaded, setCalendarRemindersLoaded] = useState(false);
-const [calendarTimePickerVisible, setCalendarTimePickerVisible] = useState(false);
-const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('');
-
+  const [calendarReminders, setCalendarReminders] = useState({});
+  const [calendarRemindersLoaded, setCalendarRemindersLoaded] = useState(false);
+  const [calendarTimePickerVisible, setCalendarTimePickerVisible] = useState(false);
+  const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('');
   const [unitCategory, setUnitCategory] = useState('length');
   const [unitValue, setUnitValue] = useState('1');
   const [unitFrom, setUnitFrom] = useState('km');
   const [unitTo, setUnitTo] = useState('m');
-
   const [currencyFrom, setCurrencyFrom] = useState('EUR');
   const [currencyTo, setCurrencyTo] = useState('USD');
   const [currencyAmount, setCurrencyAmount] = useState('1');
@@ -260,7 +236,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
   const [currencyLoading, setCurrencyLoading] = useState(false);
   const [currencyError, setCurrencyError] = useState('');
   const [currencyPicker, setCurrencyPicker] = useState(null);
-
   const [timerMinutes, setTimerMinutes] = useState('1');
   const [timerSeconds, setTimerSeconds] = useState('0');
   const [timerRemaining, setTimerRemaining] = useState(0);
@@ -270,9 +245,7 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
   const [stopwatchStartedAt, setStopwatchStartedAt] = useState(null);
   const [stopwatchElapsed, setStopwatchElapsed] = useState(0);
   const [timerTab, setTimerTab] = useState('timer');
-
   const [calculatorValue, setCalculatorValue] = useState('0');
-
   const deepSeekSaveTimerRef = useRef(null);
   const [reactionTargetId, setReactionTargetId] = useState(null);
   const noteSelectionRef = useRef({ start: 0, end: 0 });
@@ -286,17 +259,13 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
   const speechBaseTextRef = useRef('');
   const timerIntervalRef = useRef(null);
   const stopwatchIntervalRef = useRef(null);
-
   // --- ЗАГРУЗКА ЗАМЕТОК: НЕ ПЕРЕЗАПИСЫВАЕМ ПРИ ОШИБКЕ ---
   useEffect(() => {
     let mounted = true;
-
     AsyncStorage.getItem(NOTES_KEY)
       .then((raw) => {
         if (!mounted) return;
-
         let saved = [];
-
         if (raw) {
           const parsed = JSON.parse(raw);
           if (!Array.isArray(parsed)) {
@@ -309,7 +278,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
               typeof item.text === 'string'
           );
         }
-
         notesRef.current = saved;
         notesLoadedRef.current = true;
         setNotes(saved);
@@ -318,53 +286,42 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       .catch((error) => {
         console.warn('Не удалось загрузить заметки:', error);
         if (!mounted) return;
-
         // Не разрешаем автосохранению затереть старые данные.
         setNotesLoadFailed(true);
         setNotesLoaded(false);
       });
-
     return () => {
       mounted = false;
     };
   }, []);
-
   // --- АВТОСОХРАНЕНИЕ ЗАМЕТОК ---
   useEffect(() => {
     if (!notesLoaded || notesLoadFailed) return;
-
     notesRef.current = notes;
-
     if (noteSaveTimer.current) {
       clearTimeout(noteSaveTimer.current);
     }
-
     noteSaveTimer.current = setTimeout(() => {
       AsyncStorage.setItem(NOTES_KEY, JSON.stringify(notes)).catch((error) => {
         console.warn('Не удалось сохранить заметки:', error);
       });
     }, 300);
-
     return () => {
       if (noteSaveTimer.current) {
         clearTimeout(noteSaveTimer.current);
       }
     };
   }, [notes, notesLoaded, notesLoadFailed]);
-
   // --- ЗАГРУЗКА ЗАМЕТОК КАЛЕНДАРЯ ---
   useEffect(() => {
     let mounted = true;
-
     AsyncStorage.getItem(CALENDAR_NOTES_KEY)
       .then((raw) => {
         if (!mounted) return;
         const parsed = raw ? JSON.parse(raw) : {};
-
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
           throw new Error('Некорректный формат заметок календаря');
         }
-
         setCalendarNotes(parsed);
         setCalendarNotesLoaded(true);
       })
@@ -372,65 +329,52 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
         console.warn('Не удалось загрузить заметки календаря:', error);
         if (mounted) setCalendarNotesLoadFailed(true);
       });
-
     return () => {
       mounted = false;
     };
   }, []);
-
   // --- ЗАГРУЗКА ПОСЛЕДНЕГО АДРЕСА DEEPSEEK ---
   useEffect(() => {
     let mounted = true;
-
     AsyncStorage.getItem(DEEPSEEK_KEY)
       .then((savedUrl) => {
         if (!mounted) return;
-
         if (
           savedUrl &&
           savedUrl.startsWith('https://chat.deepseek.com/')
         ) {
           setDeepSeekUrl(savedUrl);
         }
-
         setDeepSeekUrlLoaded(true);
       })
       .catch(() => {
         if (mounted) setDeepSeekUrlLoaded(true);
       });
-
     return () => {
       mounted = false;
     };
   }, []);
-
   // --- РАСПОЗНАВАНИЕ РЕЧИ ---
   useSpeechRecognitionEvent('start', () => {
     setIsListening(true);
   });
-
   useSpeechRecognitionEvent('end', () => {
     setIsListening(false);
   });
-
   useSpeechRecognitionEvent('result', (event) => {
     const transcript = event.results?.[0]?.transcript;
     if (!transcript) return;
-
     const combined = speechBaseTextRef.current
       ? `${speechBaseTextRef.current}${speechBaseTextRef.current.endsWith(' ') ? '' : ' '}${transcript}`
       : transcript;
-
     setNoteText(combined);
     updateNoteText(combined);
   });
-
   useSpeechRecognitionEvent('error', (event) => {
     setIsListening(false);
     console.warn('Ошибка распознавания речи:', event?.message || event?.error);
   });
-
-        useEffect(() => {
+  useEffect(() => {
     try {
       setSpeechAvailable(
         ExpoSpeechRecognitionModule.isRecognitionAvailable()
@@ -439,7 +383,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       setSpeechAvailable(false);
     }
   }, []);
-
   // --- ЗАПОМИНАНИЕ DEEPSEEK ---
   const rememberDeepSeekUrl = (url) => {
     if (
@@ -448,17 +391,14 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
     ) {
       return;
     }
-
     setDeepSeekUrl(url);
-
     if (deepSeekSaveTimerRef.current) {
       clearTimeout(deepSeekSaveTimerRef.current);
     }
-
     deepSeekSaveTimerRef.current = setTimeout(async () => {
       try {
         await AsyncStorage.setItem(
-          DEEPSEEK_URL_KEY,
+          DEEPSEEK_KEY,
           url
         );
       } catch (error) {
@@ -466,7 +406,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       }
     }, 500);
   };
-
   const createNote = () => {
     const now = new Date().toISOString();
     const note = {
@@ -475,7 +414,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       createdAt: now,
       updatedAt: now,
     };
-
     setNotes((prev) => [note, ...prev]);
     setSelectedNoteId(note.id);
     setNoteText('');
@@ -484,13 +422,9 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
     setShowNotesList(false);
     setTimeout(() => noteInputRef.current?.focus(), 250);
   };
-
-
-
   // --- ИЗМЕНЕНИЕ ТЕКСТА ЗАМЕТКИ ---
   function updateNoteText(value) {
     setNoteText(value);
-
     if (!selectedNoteId) {
       const now = new Date().toISOString();
       const note = {
@@ -499,12 +433,10 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
         createdAt: now,
         updatedAt: now,
       };
-
       setNotes((prev) => [note, ...prev]);
       setSelectedNoteId(note.id);
       return;
     }
-
     setNotes((prev) =>
       prev.map((note) =>
         note.id === selectedNoteId
@@ -513,7 +445,6 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       )
     );
   }
-
   // --- УДАЛЕНИЕ ЗАМЕТКИ ---
   // --- РЕАКЦИИ НА ЗАМЕТКИ ---
   const insertNoteSymbol = (symbol) => {
@@ -522,18 +453,14 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       start: text.length,
       end: text.length
     };
-
     const start = Math.max(0, Math.min(selection.start, text.length));
     const end = Math.max(start, Math.min(selection.end, text.length));
-
     const nextText = text.slice(0, start) + symbol + text.slice(end);
     const nextPosition = start + symbol.length;
     const nextSelection = { start: nextPosition, end: nextPosition };
-
     noteSelectionRef.current = nextSelection;
     updateNoteText(nextText);
     setNotePaletteVisible(false);
-
     setTimeout(() => {
       noteInputRef.current?.focus();
       noteInputRef.current?.setNativeProps({
@@ -544,9 +471,7 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
   const toggleNoteReaction = (noteId, emoji) => {
     const target = notes.find(note => note.id === noteId);
     if (!target) return;
-
     const current = Array.isArray(target.reactions) ? target.reactions : [];
-
     if (current.includes(emoji)) {
       setNotes(prev => prev.map(note =>
         note.id === noteId
@@ -555,24 +480,19 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
       ));
       return;
     }
-
     const text = String(target.text || '');
     const selection = selectedNoteId === noteId
       ? noteSelectionRef.current || { start: text.length, end: text.length }
       : { start: text.length, end: text.length };
-
     const start = Math.max(0, Math.min(selection.start, text.length));
     const end = Math.max(start, Math.min(selection.end, text.length));
-
     const nextText = text.slice(0, start) + emoji + text.slice(end);
     const nextPosition = start + emoji.length;
-
     setNotes(prev => prev.map(note =>
       note.id === noteId
         ? { ...note, text: nextText, reactions: [...current, emoji], updatedAt: new Date().toISOString() }
         : note
     ));
-
     if (selectedNoteId === noteId) {
       setNoteText(nextText);
       noteSelectionRef.current = { start: nextPosition, end: nextPosition };
@@ -580,150 +500,141 @@ const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('
   };
   const deleteNote = (noteId) => {
     setNotes((prev) => prev.filter((note) => note.id !== noteId));
-
     if (selectedNoteId === noteId) {
       setSelectedNoteId(null);
       setNoteText('');
     }
   };
-
   useEffect(() => {
-  let mounted = true;
-  AsyncStorage.getItem(CALENDAR_REMINDERS_KEY)
-    .then(raw => {
-      if (!mounted) return;
-      const parsed = raw ? JSON.parse(raw) : {};
-      setCalendarReminders(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
-      setCalendarRemindersLoaded(true);
-    })
-    .catch(error => {
-      console.warn('Ошибка загрузки напоминаний:', error);
-      if (mounted) setCalendarRemindersLoaded(true);
-    });
-  return () => { mounted = false; };
-}, []);
-const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) => {
-  if (Platform.OS === 'web') {
-    Alert.alert('Напоминания', 'Локальные уведомления доступны в установленной версии Android.');
-    return false;
-  }
-
-  if (!(scheduledDate instanceof Date) || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
-    Alert.alert('Неверное время', 'Выбери время в будущем.');
-    return false;
-  }
-
-  try {
-    let permission = await Notifications.getPermissionsAsync();
-    if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert('Нет разрешения', 'Уведомления запрещены. Прежнее напоминание останется.');
+    let mounted = true;
+    AsyncStorage.getItem(CALENDAR_REMINDERS_KEY)
+      .then(raw => {
+        if (!mounted) return;
+        const parsed = raw ? JSON.parse(raw) : {};
+        setCalendarReminders(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+        setCalendarRemindersLoaded(true);
+      })
+      .catch(error => {
+        console.warn('Ошибка загрузки напоминаний:', error);
+        if (mounted) setCalendarRemindersLoaded(true);
+      });
+    return () => { mounted = false; };
+  }, []);
+  const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Напоминания', 'Локальные уведомления доступны в установленной версии Android.');
       return false;
     }
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('calendar-reminders', {
-        name: 'Напоминания календаря',
-        importance: Notifications.AndroidImportance.HIGH,
-      });
+    if (!(scheduledDate instanceof Date) || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+      Alert.alert('Неверное время', 'Выбери время в будущем.');
+      return false;
     }
-
-    const newId = await Notifications.scheduleNotificationAsync({
-      content: { title: 'Cosmos Notes', body: reminderText, sound: true },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: scheduledDate,
-        ...(Platform.OS === 'android' ? { channelId: 'calendar-reminders' } : {}),
-      },
-    });
-
+    try {
+      let permission = await Notifications.getPermissionsAsync();
+      if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Нет разрешения', 'Уведомления запрещены. Прежнее напоминание останется.');
+        return false;
+      }
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('calendar-reminders', {
+          name: 'Напоминания календаря',
+          importance: Notifications.AndroidImportance.HIGH,
+        });
+      }
+      const newId = await Notifications.scheduleNotificationAsync({
+        content: { title: 'Cosmos Notes', body: reminderText, sound: true },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: scheduledDate,
+          ...(Platform.OS === 'android' ? { channelId: 'calendar-reminders' } : {}),
+        },
+      });
+      const previous = calendarReminders[dateKey];
+      if (previous?.id) {
+        try {
+          await Notifications.cancelScheduledNotificationAsync(previous.id);
+        } catch (error) {
+          console.warn('Не удалось отменить прежнее уведомление:', error);
+        }
+      }
+      const updated = {
+        ...calendarReminders,
+        [dateKey]: {
+          id: newId,
+          timestamp: scheduledDate.getTime(),
+          time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        },
+      };
+      await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
+      setCalendarReminders(updated);
+      return true;
+    } catch (error) {
+      console.error('Ошибка напоминания:', error);
+      Alert.alert('Ошибка', 'Не удалось создать напоминание.');
+      return false;
+    }
+  };
+  const cancelCalendarReminder = async (dateKey) => {
     const previous = calendarReminders[dateKey];
-    if (previous?.id) {
+    if (!previous) return;
+    if (Platform.OS !== 'web' && previous.id) {
       try {
         await Notifications.cancelScheduledNotificationAsync(previous.id);
       } catch (error) {
-        console.warn('Не удалось отменить прежнее уведомление:', error);
+        console.warn('Ошибка отмены уведомления:', error);
       }
     }
-
-    const updated = {
-      ...calendarReminders,
-      [dateKey]: {
-        id: newId,
-        timestamp: scheduledDate.getTime(),
-        time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      },
-    };
-
+    const updated = { ...calendarReminders };
+    delete updated[dateKey];
     await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
     setCalendarReminders(updated);
-    return true;
-  } catch (error) {
-    console.error('Ошибка напоминания:', error);
-    Alert.alert('Ошибка', 'Не удалось создать напоминание.');
-    return false;
-  }
-};
-
-const cancelCalendarReminder = async (dateKey) => {
-  const previous = calendarReminders[dateKey];
-  if (!previous) return;
-
-  if (Platform.OS !== 'web' && previous.id) {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(previous.id);
-    } catch (error) {
-      console.warn('Ошибка отмены уведомления:', error);
+  };
+  const confirmCalendarAction = (title, message, onConfirm, confirmLabel) => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) {
+        onConfirm();
+      }
+      return;
     }
-  }
+    Alert.alert(title, message, [
+      { text: 'Нет', style: 'cancel' },
+      { text: confirmLabel || 'Подтвердить', style: 'destructive', onPress: onConfirm },
+    ]);
+  };
+  const askCalendarReminder = (text) => {
+    if (!text?.trim()) return;
 
-  const updated = { ...calendarReminders };
-  delete updated[dateKey];
-  await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
-  setCalendarReminders(updated);
-};
+    if (Platform.OS === 'web') {
+      const accepted = typeof window !== 'undefined' &&
+        window.confirm('Создать напоминание для этой заметки?');
 
-const confirmCalendarAction = (title, message, onConfirm, confirmLabel) => {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) {
-      onConfirm();
+      if (accepted && typeof window !== 'undefined') {
+        window.alert('Напоминания по времени доступны в установленной версии Android. Заметка сохранена.');
+      }
+      setCalendarNoteOpen(false);
+      return;
     }
-    return;
-  }
 
-  Alert.alert(title, message, [
-    { text: 'Нет', style: 'cancel' },
-    { text: confirmLabel || 'Подтвердить', style: 'destructive', onPress: onConfirm },
-  ]);
-};
-const askCalendarReminder = (text) => {
-  if (!text?.trim()) return;
-
-  if (Platform.OS === 'web') {
-    const accepted = typeof window !== 'undefined' &&
-      window.confirm('Создать напоминание для этой заметки?');
-
-    if (accepted && typeof window !== 'undefined') {
-      window.alert('Напоминания по времени доступны в установленной версии Android. Заметка сохранена.');
-    }
-    return;
-  }
-
-  setPendingCalendarReminderText(text.trim());
-  Alert.alert('Напоминание', 'Создать напоминание для этой заметки?', [
-    { text: 'Нет', style: 'cancel' },
-    { text: 'Да', onPress: () => setCalendarTimePickerVisible(true) },
-  ]);
-};
-const selectedNote = notes.find((note) => note.id === selectedNoteId);
-
+    setPendingCalendarReminderText(text.trim());
+    Alert.alert('Напоминание', 'Создать напоминание для этой заметки?', [
+      {
+        text: 'Нет',
+        style: 'cancel',
+        onPress: () => setCalendarNoteOpen(false),
+      },
+      {
+        text: 'Да',
+        onPress: () => setCalendarTimePickerVisible(true),
+      },
+    ]);
+  };
+  const selectedNote = notes.find((note) => note.id === selectedNoteId);
   // --- ГОЛОСОВОЙ ВВОД ---
   const startVoiceInput = async () => {
     try {
       const permission =
         await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-
       if (!permission.granted) {
         Alert.alert(
           'Нет доступа к микрофону',
@@ -731,10 +642,8 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         );
         return;
       }
-
       const available =
         ExpoSpeechRecognitionModule.isRecognitionAvailable();
-
       if (!available) {
         Alert.alert(
           'Распознавание речи недоступно',
@@ -742,9 +651,7 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         );
         return;
       }
-
       speechBaseTextRef.current = noteText.trim();
-
       await ExpoSpeechRecognitionModule.start({
         lang: 'ru-RU',
         interimResults: false,
@@ -759,7 +666,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       );
     }
   };
-
   const stopVoiceInput = async () => {
     try {
       await ExpoSpeechRecognitionModule.stop();
@@ -767,28 +673,23 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       setIsListening(false);
     }
   };
-
   // --- ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ ---
   const openTool = (name) => {
     Keyboard.dismiss();
     setToolScreen(name);
     setActiveScreen('tools');
   };
-
   const goBackToTools = () => {
     Keyboard.dismiss();
     setToolScreen('tools');
   };
-
   // --- КУРСЫ ВАЛЮТ: ЗАГРУЗКА КЭША ---
   const loadCurrencyCache = async () => {
     try {
       const raw = await AsyncStorage.getItem(CURRENCY_CACHE_KEY);
       if (!raw) return null;
-
       const cached = JSON.parse(raw);
       if (!cached || !cached.rates || !cached.date) return null;
-
       setCurrencyRates(cached.rates);
       setCurrencyDate(cached.date);
       return cached;
@@ -796,30 +697,23 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       return null;
     }
   };
-
   // --- КУРСЫ ВАЛЮТ: ЗАГРУЗКА ИЗ FRANKFURTER ---
   const refreshCurrencyRates = async () => {
     setCurrencyLoading(true);
     setCurrencyError('');
-
     try {
       const cached = await loadCurrencyCache();
       const response = await fetch(
         'https://api.frankfurter.dev/v2/rates?base=EUR'
       );
-
       if (!response.ok) {
         throw new Error(`Ошибка сервера: ${response.status}`);
       }
-
       const data = await response.json();
-
       if (!Array.isArray(data) || data.length === 0) {
         throw new Error('Сервис не вернул курсы валют.');
       }
-
       const rates = { EUR: 1 };
-
       data.forEach((item) => {
         if (
           item &&
@@ -829,40 +723,32 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
           rates[item.quote] = Number(item.rate);
         }
       });
-
       const date = data.reduce((latest, item) => {
         return item.date && item.date > latest ? item.date : latest;
       }, '');
-
       if (!date || Object.keys(rates).length < 2) {
         throw new Error('Получены неполные данные о курсах.');
       }
-
       const cache = { rates, date };
       setCurrencyRates(rates);
       setCurrencyDate(date);
-
       await AsyncStorage.setItem(
         CURRENCY_CACHE_KEY,
         JSON.stringify(cache)
       );
-
       return cache;
     } catch (error) {
       if (!currencyRates) {
         await loadCurrencyCache();
       }
-
       setCurrencyError(
         'Не удалось обновить курсы. Если ранее они загружались, используется сохранённая версия.'
       );
-
       console.warn('Ошибка загрузки валют:', error);
     } finally {
       setCurrencyLoading(false);
     }
   };
-
   useEffect(() => {
     if (activeScreen === 'tools' && toolScreen === 'currency') {
       loadCurrencyCache().then(() => {
@@ -870,45 +756,36 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       });
     }
   }, [activeScreen, toolScreen]);
-
   // --- ТАЙМЕР: ВОССТАНОВЛЕНИЕ ПО ВРЕМЕНИ ОКОНЧАНИЯ ---
   useEffect(() => {
     if (!timerRunning || !timerEndAt) return;
-
     const update = () => {
       const remaining = Math.max(0, Math.ceil((timerEndAt - Date.now()) / 1000));
       setTimerRemaining(remaining);
-
       if (remaining <= 0) {
         setTimerRunning(false);
         setTimerEndAt(null);
         Alert.alert('Таймер', 'Время вышло!');
       }
     };
-
     update();
     timerIntervalRef.current = setInterval(update, 250);
-
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [timerRunning, timerEndAt]);
-
   // --- СЕКУНДОМЕР ---
   useEffect(() => {
     if (!stopwatchRunning || !stopwatchStartedAt) return;
-
     stopwatchIntervalRef.current = setInterval(() => {
       setStopwatchElapsed(
         Date.now() - stopwatchStartedAt
       );
     }, 50);
-
     return () => {
       if (stopwatchIntervalRef.current) clearInterval(stopwatchIntervalRef.current);
     };
   }, [stopwatchRunning, stopwatchStartedAt]);
-
   // --- ФОРМАТ ВРЕМЕНИ ---
   const formatClock = (milliseconds) => {
     const total = Math.max(0, Math.floor(milliseconds / 10));
@@ -916,175 +793,132 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
     const seconds = Math.floor(total / 100) % 60;
     const minutes = Math.floor(total / 6000) % 60;
     const hours = Math.floor(total / 360000);
-
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
   };
-
   // --- ЗАПУСК ТАЙМЕРА ---
-    const startTimer = () => {
+  const startTimer = () => {
     const minutes = Math.max(0, Math.floor(Number(timerMinutes) || 0));
     const seconds = Math.max(
       0,
       Math.min(59, Math.floor(Number(timerSeconds) || 0))
     );
-
     const total = timerRemaining > 0
       ? timerRemaining
       : minutes * 60 + seconds;
-
     if (total <= 0) {
       Alert.alert('Таймер', 'Укажи время больше нуля.');
       return;
     }
-
     const endAt = Date.now() + total * 1000;
     setTimerRemaining(total);
     setTimerEndAt(endAt);
     setTimerRunning(true);
   };
-
   const stopTimer = () => {
     setTimerRunning(false);
     setTimerEndAt(null);
   };
-
   const resetTimer = () => {
     setTimerRunning(false);
     setTimerEndAt(null);
     setTimerRemaining(0);
   };
-
   // --- КАЛЬКУЛЯТОР ---
   const calculate = (expression) => {
     const source = String(expression)
       .replace(/×/g, '*')
       .replace(/÷/g, '/');
-
     if (!source.trim() || source.length > 200) {
       throw new Error('Недопустимое выражение');
     }
-
     let position = 0;
-
     const skipSpaces = () => {
       while (source[position] === ' ') position++;
     };
-
     const parseExpression = () => {
       let value = parseTerm();
-
       while (true) {
         skipSpaces();
         const operator = source[position];
-
         if (operator !== '+' && operator !== '-') break;
         position++;
-
         const rightStart = position;
         const right = parseTerm();
         const rightIsPercent = /%\s*$/.test(source.slice(rightStart, position));
         const adjustedRight = rightIsPercent
           ? value * right
           : right;
-
         value = operator === '+'
           ? value + adjustedRight
           : value - adjustedRight;
-
         if (!Number.isFinite(value)) {
           throw new Error('Некорректный результат');
         }
       }
-
       return value;
     };
-
     const parseTerm = () => {
       let value = parseUnary();
-
       while (true) {
         skipSpaces();
         const operator = source[position];
-
         if (operator !== '*' && operator !== '/') break;
         position++;
-
         const right = parseUnary();
-
         if (operator === '/' && right === 0) {
           throw new Error('Деление на ноль');
         }
-
         value = operator === '*' ? value * right : value / right;
-
         if (!Number.isFinite(value)) {
           throw new Error('Некорректный результат');
         }
       }
-
       return value;
     };
-
     const parseUnary = () => {
       skipSpaces();
-
       if (source[position] === '+') {
         position++;
         return parseUnary();
       }
-
       if (source[position] === '-') {
         position++;
         return -parseUnary();
       }
-
       return parsePrimary();
     };
-
     const parsePrimary = () => {
       skipSpaces();
-
       let value;
-
       if (source[position] === '(') {
         position++;
         value = parseExpression();
         skipSpaces();
-
         if (source[position] !== ')') {
           throw new Error('Не закрыта скобка');
         }
-
         position++;
       } else {
         const match = source.slice(position).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
-
         if (!match) {
           throw new Error('Недопустимое выражение');
         }
-
         value = Number(match[0]);
         position += match[0].length;
       }
-
       skipSpaces();
-
       while (source[position] === '%') {
         value /= 100;
         position++;
         skipSpaces();
       }
-
       return value;
     };
-
     const result = parseExpression();
     skipSpaces();
-
     if (position !== source.length || !Number.isFinite(result)) {
       throw new Error('Недопустимое выражение');
     }
-
     return String(Number(result.toFixed(10)));
   };
   const pressCalculator = (value) => {
@@ -1092,12 +926,10 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       setCalculatorValue('0');
       return;
     }
-
     if (value === '⌫') {
       setCalculatorValue((prev) => prev.length > 1 ? prev.slice(0, -1) : '0');
       return;
     }
-
     if (value === '=') {
       try {
         setCalculatorValue(calculate(calculatorValue));
@@ -1106,7 +938,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       }
       return;
     }
-
     setCalculatorValue((prev) => prev === '0' ? value : prev + value);
   };
   // --- ГЛАВНЫЙ ЭКРАН ---
@@ -1115,7 +946,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
-
         <View style={styles.centerContainer}>
           <Image
             source={require('./assets/icon2.png')}
@@ -1126,10 +956,7 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               marginBottom: 20,
             }}
           />
-
           <View style={styles.mainButtons}>
-
-
             <CosmicButton
               title="Заметки"
               icon="document-text-outline"
@@ -1153,14 +980,12 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </SafeAreaView>
     );
   }
-
   // --- ЭКРАН ЗАМЕТОК ---
   if (activeScreen === 'notes') {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
-
         <View style={styles.topNav}>
           <CosmicButton
             title="Назад"
@@ -1183,7 +1008,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             style={{ flex: 1 }}
           />
         </View>
-
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1215,8 +1039,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                 </Text>
               </Pressable>
             </View>
-
-
             {notesLoadFailed ? (
               <View style={styles.warningBox}>
                 <Ionicons name="warning-outline" size={20} color="#FFD28A" />
@@ -1226,7 +1048,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                 </Text>
               </View>
             ) : null}
-
             {showNotesList ? (
               <ScrollView
                 style={{ flex: 1 }}
@@ -1237,7 +1058,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                 {notes.length === 0 ? (
                   <Text style={styles.emptyText}>Пока нет заметок</Text>
                 ) : null}
-
                 {[...notes]
                   .sort(
                     (a, b) =>
@@ -1246,83 +1066,79 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   .map((note) => (
                     <View key={note.id} style={styles.noteCard}>
                       <Pressable
-  onPress={() => {
-    setSelectedNoteId(note.id);
-    setNoteText(note.text);
-    const end = (note.text || '').length;
-    noteSelectionRef.current = { start: end, end };
-    setReactionTargetId(null);
-    setShowNotesList(false);
-  }}
-  onLongPress={() => setReactionTargetId(
-    reactionTargetId === note.id ? null : note.id
-  )}
-  delayLongPress={350}
-  style={{ flex: 1 }}
->
-  <Text style={styles.noteCardTitle}>
-    {note.text.trim().split('\n')[0].slice(0, 40) || 'Пустая заметка'}
-  </Text>
-  <Text style={styles.noteCardDate}>
-    {formatDate(note.createdAt)}
-  </Text>
-  <Text style={styles.noteCardPreview} numberOfLines={2}>
-    {note.text || 'Нет текста'}
-  </Text>
-</Pressable>
-
-<View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
-  {Array.isArray(note.reactions) ? note.reactions.map(emoji => (
-    <Text key={emoji} style={{ fontSize: 18 }}>{emoji}</Text>
-  )) : null}
-
-  <Pressable
-    onPress={() => setReactionTargetId(
-      reactionTargetId === note.id ? null : note.id
-    )}
-    style={{
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 10,
-      backgroundColor: 'rgba(75,170,255,0.2)',
-      borderWidth: 1,
-      borderColor: '#78CFFF'
-    }}
-  >
-    <Text style={{ color: '#FFFFFF', fontSize: 18 }}>✦</Text>
-  </Pressable>
-</View>
-
-{reactionTargetId === note.id ? (
-  <View style={{
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(7,20,48,0.85)',
-    borderWidth: 1,
-    borderColor: '#78CFFF'
-  }}>
-    {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(emoji => (
-      <Pressable
-        key={emoji}
-        onPress={() => toggleNoteReaction(note.id, emoji)}
-        style={{
-          padding: 5,
-          borderRadius: 9,
-          backgroundColor: note.reactions?.includes(emoji)
-            ? 'rgba(75,170,255,0.35)'
-            : 'rgba(255,255,255,0.06)'
-        }}
-      >
-        <Text style={{ fontSize: 21 }}>{emoji}</Text>
-      </Pressable>
-    ))}
-  </View>
-) : null}
-
+                        onPress={() => {
+                          setSelectedNoteId(note.id);
+                          setNoteText(note.text);
+                          const end = (note.text || '').length;
+                          noteSelectionRef.current = { start: end, end };
+                          setReactionTargetId(null);
+                          setShowNotesList(false);
+                        }}
+                        onLongPress={() => setReactionTargetId(
+                          reactionTargetId === note.id ? null : note.id
+                        )}
+                        delayLongPress={350}
+                        style={{ flex: 1 }}
+                      >
+                        <Text style={styles.noteCardTitle}>
+                          {note.text.trim().split('\n')[0].slice(0, 40) || 'Пустая заметка'}
+                        </Text>
+                        <Text style={styles.noteCardDate}>
+                          {formatDate(note.createdAt)}
+                        </Text>
+                        <Text style={styles.noteCardPreview} numberOfLines={2}>
+                          {note.text || 'Нет текста'}
+                        </Text>
+                      </Pressable>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
+                        {Array.isArray(note.reactions) ? note.reactions.map(emoji => (
+                          <Text key={emoji} style={{ fontSize: 18 }}>{emoji}</Text>
+                        )) : null}
+                        <Pressable
+                          onPress={() => setReactionTargetId(
+                            reactionTargetId === note.id ? null : note.id
+                          )}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 10,
+                            backgroundColor: 'rgba(75,170,255,0.2)',
+                            borderWidth: 1,
+                            borderColor: '#78CFFF'
+                          }}
+                        >
+                          <Text style={{ color: '#FFFFFF', fontSize: 18 }}>✦</Text>
+                        </Pressable>
+                      </View>
+                      {reactionTargetId === note.id ? (
+                        <View style={{
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          gap: 8,
+                          marginTop: 10,
+                          padding: 8,
+                          borderRadius: 12,
+                          backgroundColor: 'rgba(7,20,48,0.85)',
+                          borderWidth: 1,
+                          borderColor: '#78CFFF'
+                        }}>
+                          {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(emoji => (
+                            <Pressable
+                              key={emoji}
+                              onPress={() => toggleNoteReaction(note.id, emoji)}
+                              style={{
+                                padding: 5,
+                                borderRadius: 9,
+                                backgroundColor: note.reactions?.includes(emoji)
+                                  ? 'rgba(75,170,255,0.35)'
+                                  : 'rgba(255,255,255,0.06)'
+                              }}
+                            >
+                              <Text style={{ fontSize: 21 }}>{emoji}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
                       <CosmicButton
                         title=""
                         icon="trash-outline"
@@ -1345,24 +1161,20 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                     Слушаю… Говори после сигнала распознавания.
                   </Text>
                 ) : null}
-
-<View
-  style={styles.editorWrapper}
-  onTouchStart={() => {
-    noteLongPressTimerRef.current = setTimeout(() => {
-      setNotePaletteVisible(true);
-    }, 550);
-  }}
-  onTouchEnd={() => {
-    clearTimeout(noteLongPressTimerRef.current);
-  }}
-  onTouchMove={() => {
-    clearTimeout(noteLongPressTimerRef.current);
-  }}
-  onTouchCancel={() => {
-    clearTimeout(noteLongPressTimerRef.current);
-  }}
->
+                <View
+                  style={styles.editorWrapper}
+                  onTouchStart={() => {
+                    noteLongPressTimerRef.current = setTimeout(() => {
+                      setNotePaletteVisible(true);
+                    }, 550);
+                  }}
+                  onTouchEnd={() => {
+                    clearTimeout(noteLongPressTimerRef.current);
+                  }}
+                  onTouchCancel={() => {
+                    clearTimeout(noteLongPressTimerRef.current);
+                  }}
+                >
                   <View
                     pointerEvents="none"
                     style={styles.cosmicInnerFrame}
@@ -1437,7 +1249,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                     keyboardAppearance="dark"
                   />
                 </View>
-
                 {selectedNote ? (
                   <View style={{ alignItems: 'flex-end', marginTop: 10 }}>
                     <CosmicButton
@@ -1456,15 +1267,13 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </SafeAreaView>
     );
   }
-
   // --- РАЗДЕЛ ИНСТРУМЕНТОВ ---
   if (activeScreen === 'tools' && toolScreen === 'tools') {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
-
-                <ScrollView
+        <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.contentContainer,
@@ -1476,7 +1285,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
           <Text style={[styles.screenTitle, { marginBottom: 20 }]}>
             Инструменты
           </Text>
-
           <View style={styles.toolsGrid}>
             <ToolButton
               title="Назад"
@@ -1508,12 +1316,11 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               icon="calculator-outline"
               onPress={() => openTool('calculator')}
             />
-                    </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
     );
   }
-
   // --- ОБЩАЯ ШАПКА ВНУТРЕННИХ ИНСТРУМЕНТОВ ---
   const toolTitles = {
     calendar: 'Календарь',
@@ -1522,7 +1329,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
     timer: 'Таймер и секундомер',
     calculator: 'Калькулятор',
   };
-
   const renderToolHeader = () => (
     <View style={styles.topNav}>
       <CosmicButton
@@ -1537,17 +1343,14 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </Text>
     </View>
   );
-
   // --- КАЛЕНДАРЬ ---
   if (activeScreen === 'tools' && toolScreen === 'calendar') {
-
     // ОТДЕЛЬНЫЙ ЭКРАН ЗАПИСИ
     if (calendarNoteOpen) {
       return (
         <SafeAreaView style={styles.safe}>
           <StatusBar barStyle="light-content" backgroundColor="#05091D" />
           <StarBackground />
-
           <View style={{ flex: 1, padding: 20 }}>
             <Pressable
               onPress={() => setCalendarNoteOpen(false)}
@@ -1562,7 +1365,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                 Вернуться к календарю
               </Text>
             </Pressable>
-
             <View
               style={{
                 marginTop: 24,
@@ -1580,7 +1382,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               }}>
                 Заметка
               </Text>
-
               <Text style={{
                 color: '#FFFFFF',
                 fontSize: 15,
@@ -1594,7 +1395,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   year: 'numeric',
                 })}
               </Text>
-
               <TextInput
                 multiline
                 value={calendarNoteText}
@@ -1614,167 +1414,155 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   backgroundColor: 'rgba(3,10,30,0.65)',
                 }}
               />
-
               <View style={{
-  flexDirection: 'row',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
-  gap: 10,
-  marginTop: 16,
-}}>
-  <Pressable
-    disabled={!calendarNotesLoaded || calendarNotesLoadFailed}
-    accessibilityRole="button"
-    accessibilityLabel="Сохранить заметку"
-    onPress={async () => {
-      const key = getLocalDateKey(selectedCalendarDate);
-      const updated = { ...calendarNotes };
-      const text = calendarNoteText.trim();
-
-      if (text) {
-        updated[key] = text;
-      } else {
-        delete updated[key];
-      }
-
-      try {
-        await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
-        setCalendarNotes(updated);
-
-        if (!text) {
-          await cancelCalendarReminder(key);
-          setCalendarNoteOpen(false);
-          return;
-        }
-
-        setCalendarNoteOpen(false);
-        askCalendarReminder(text);
-      } catch (error) {
-        console.warn('Ошибка сохранения заметки:', error);
-        Alert.alert('Ошибка', 'Не удалось сохранить заметку.');
-      }
-    }}
-    style={{
-      width: 54,
-      height: 54,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#123C68',
-      borderWidth: 1,
-      borderColor: '#78CFFF',
-      opacity: calendarNotesLoaded && !calendarNotesLoadFailed ? 1 : 0.45,
-    }}
-  >
-    <Ionicons name="save-outline" size={27} color="#BDEBFF" />
-  </Pressable>
-
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Отменить напоминание"
-    onPress={() => {
-      const key = getLocalDateKey(selectedCalendarDate);
-      confirmCalendarAction(
-        'Напоминание',
-        'Отменить напоминание для этой даты?',
-        () => cancelCalendarReminder(key),
-        'Отменить'
-      );
-    }}
-    style={{
-      width: 54,
-      height: 54,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#123C68',
-      borderWidth: 1,
-      borderColor: '#78CFFF',
-    }}
-  >
-    <Ionicons name="notifications-off-outline" size={27} color="#BDEBFF" />
-  </Pressable>
-
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Удалить заметку"
-    onPress={() => {
-      confirmCalendarAction(
-        'Удалить заметку?',
-        'Текст заметки и напоминание будут удалены.',
-        async () => {
-          const key = getLocalDateKey(selectedCalendarDate);
-          const updated = { ...calendarNotes };
-          delete updated[key];
-
-          try {
-            await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
-            setCalendarNotes(updated);
-            await cancelCalendarReminder(key);
-            setCalendarNoteText('');
-            setCalendarNoteOpen(false);
-          } catch (error) {
-            console.warn('Ошибка удаления заметки:', error);
-            Alert.alert('Ошибка', 'Не удалось удалить заметку.');
-          }
-        },
-        'Удалить'
-      );
-    }}
-    style={{
-      width: 54,
-      height: 54,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#123C68',
-      borderWidth: 1,
-      borderColor: '#78CFFF',
-    }}
-  >
-    <Ionicons name="trash-outline" size={27} color="#BDEBFF" />
-  </Pressable>
-</View>
-
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: 10,
+                marginTop: 16,
+              }}>
+                <Pressable
+                  disabled={!calendarNotesLoaded || calendarNotesLoadFailed}
+                  accessibilityRole="button"
+                  accessibilityLabel="Сохранить заметку"
+                  onPress={async () => {
+                    const key = getLocalDateKey(selectedCalendarDate);
+                    const updated = { ...calendarNotes };
+                    const text = calendarNoteText.trim();
+                    if (text) {
+                      updated[key] = text;
+                    } else {
+                      delete updated[key];
+                    }
+                    try {
+                      await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
+                      setCalendarNotes(updated);
+                      if (!text) {
+                        await cancelCalendarReminder(key);
+                        setCalendarNoteOpen(false);
+                        return;
+                      }
+                      askCalendarReminder(text);
+                    } catch (error) {
+                      console.warn('Ошибка сохранения заметки:', error);
+                      Alert.alert('Ошибка', 'Не удалось сохранить заметку.');
+                    }
+                  }}
+                  style={{
+                    width: 54,
+                    height: 54,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#123C68',
+                    borderWidth: 1,
+                    borderColor: '#78CFFF',
+                    opacity: calendarNotesLoaded && !calendarNotesLoadFailed ? 1 : 0.45,
+                  }}
+                >
+                  <Ionicons name="save-outline" size={27} color="#BDEBFF" />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Отменить напоминание"
+                  onPress={() => {
+                    const key = getLocalDateKey(selectedCalendarDate);
+                    confirmCalendarAction(
+                      'Напоминание',
+                      'Отменить напоминание для этой даты?',
+                      () => cancelCalendarReminder(key),
+                      'Отменить'
+                    );
+                  }}
+                  style={{
+                    width: 54,
+                    height: 54,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#123C68',
+                    borderWidth: 1,
+                    borderColor: '#78CFFF',
+                  }}
+                >
+                  <Ionicons name="notifications-off-outline" size={27} color="#BDEBFF" />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Удалить заметку"
+                  onPress={() => {
+                    confirmCalendarAction(
+                      'Удалить заметку?',
+                      'Текст заметки и напоминание будут удалены.',
+                      async () => {
+                        const key = getLocalDateKey(selectedCalendarDate);
+                        const updated = { ...calendarNotes };
+                        delete updated[key];
+                        try {
+                          await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
+                          setCalendarNotes(updated);
+                          await cancelCalendarReminder(key);
+                          setCalendarNoteText('');
+                          setCalendarNoteOpen(false);
+                        } catch (error) {
+                          console.warn('Ошибка удаления заметки:', error);
+                          Alert.alert('Ошибка', 'Не удалось удалить заметку.');
+                        }
+                      },
+                      'Удалить'
+                    );
+                  }}
+                  style={{
+                    width: 54,
+                    height: 54,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#123C68',
+                    borderWidth: 1,
+                    borderColor: '#78CFFF',
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={27} color="#BDEBFF" />
+                </Pressable>
+              </View>
               {calendarTimePickerVisible && Platform.OS !== 'web' && (
-  <DateTimePicker
-    value={new Date()}
-    mode="time"
-    display="default"
-    onChange={async (event, selectedTime) => {
-      if (event.type === 'dismissed' || !selectedTime) {
-        setCalendarTimePickerVisible(false);
-        return;
-      }
-
-      setCalendarTimePickerVisible(false);
-
-      const scheduledDate = new Date(selectedCalendarDate);
-      scheduledDate.setHours(
-        selectedTime.getHours(),
-        selectedTime.getMinutes(),
-        0,
-        0
-      );
-
-      if (scheduledDate <= new Date()) {
-        Alert.alert(
-          'Время уже прошло',
-          'Выбери время в будущем.',
-          [{ text: 'Выбрать снова', onPress: () => setCalendarTimePickerVisible(true) }]
-        );
-        return;
-      }
-
-      await scheduleCalendarReminder(
-        getLocalDateKey(selectedCalendarDate),
-        pendingCalendarReminderText,
-        scheduledDate
-      );
-    }}
-  />
-)}
-{calendarNotesLoadFailed ? (
+                <DateTimePicker
+                  value={new Date()}
+                  mode="time"
+                  display="default"
+                  onChange={async (event, selectedTime) => {
+                    if (event.type === 'dismissed' || !selectedTime) {
+                      setCalendarTimePickerVisible(false);
+                      setCalendarNoteOpen(false);
+                      return;
+                    }
+                    setCalendarTimePickerVisible(false);
+                    const scheduledDate = new Date(selectedCalendarDate);
+                    scheduledDate.setHours(
+                      selectedTime.getHours(),
+                      selectedTime.getMinutes(),
+                      0,
+                      0
+                    );
+                    if (scheduledDate <= new Date()) {
+                      Alert.alert(
+                        'Время уже прошло',
+                        'Выбери время в будущем.',
+                        [{ text: 'Выбрать снова', onPress: () => setCalendarTimePickerVisible(true) }]
+                      );
+                      return;
+                    }
+                    await scheduleCalendarReminder(
+                      getLocalDateKey(selectedCalendarDate),
+                      pendingCalendarReminderText,
+                      scheduledDate
+                    );
+                    setCalendarNoteOpen(false);
+                  }}
+                />
+              )}
+              {calendarNotesLoadFailed ? (
                 <Text style={{ color: '#FF9B9B', marginTop: 12 }}>
                   Не удалось загрузить заметки. Сохранение отключено для защиты данных.
                 </Text>
@@ -1784,32 +1572,26 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         </SafeAreaView>
       );
     }
-
     // ОСНОВНОЙ ЭКРАН КАЛЕНДАРЯ
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const offset = (firstDay + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
     const monthNames = [
       'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
     ];
-
     const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-
     const cells = [
       ...Array(offset).fill(null),
       ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
     ];
-
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-
         <View style={styles.contentContainer}>
           <View style={styles.calendarMonthRow}>
             <CosmicButton
@@ -1826,34 +1608,28 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               style={styles.smallIconButton}
             />
           </View>
-
           <View style={styles.calendarGrid}>
             {weekDays.map((day) => (
               <View key={day} style={styles.calendarWeekCell}>
                 <Text style={styles.calendarWeekText}>{day}</Text>
               </View>
             ))}
-
             {cells.map((day, index) => {
               if (!day) {
                 return <View key={`empty-${index}`} style={styles.calendarDay} />;
               }
-
               const date = new Date(year, month, day);
               const dateKey = getLocalDateKey(date);
               const hasNote = Boolean(calendarNotes[dateKey]);
-
               const isSelected =
                 selectedCalendarDate.getFullYear() === year &&
                 selectedCalendarDate.getMonth() === month &&
                 selectedCalendarDate.getDate() === day;
-
               const today = new Date();
               const isToday =
                 today.getFullYear() === year &&
                 today.getMonth() === month &&
                 today.getDate() === day;
-
               return (
                 <Pressable
                   key={`day-${day}`}
@@ -1877,7 +1653,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   >
                     {day}
                   </Text>
-
                   {hasNote ? (
                     <Text
                       numberOfLines={2}
@@ -1899,7 +1674,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               );
             })}
           </View>
-
           <View style={styles.calendarSelectedBox}>
             <Ionicons name="calendar" size={22} color="#BDEBFF" />
             <Text style={styles.calendarSelectedText}>
@@ -1911,7 +1685,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               })}
             </Text>
           </View>
-
           <Text style={{
             color: '#8B91A8',
             textAlign: 'center',
@@ -1920,7 +1693,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
           }}>
             Нажмите на число, чтобы добавить или открыть заметку
           </Text>
-
           <CosmicButton
             title="Сегодня"
             icon="today-outline"
@@ -1978,7 +1750,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         ],
       },
     };
-
     const category = unitGroups[unitCategory] || unitGroups.length;
     const units = category.units;
     const fromIndex = Math.max(0, units.findIndex(item => item.id === unitFrom));
@@ -1986,16 +1757,12 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
     const fromUnit = units[fromIndex];
     const toUnit = units[toIndex];
     const numericValue = Number(String(unitValue).replace(',', '.'));
-
     let convertedValue = null;
-
     if (Number.isFinite(numericValue) && unitValue.trim() !== '') {
       if (unitCategory === 'temperature') {
         let celsius = numericValue;
-
         if (unitFrom === 'f') celsius = (numericValue - 32) * 5 / 9;
         if (unitFrom === 'k') celsius = numericValue - 273.15;
-
         if (unitTo === 'f') convertedValue = celsius * 9 / 5 + 32;
         else if (unitTo === 'k') convertedValue = celsius + 273.15;
         else convertedValue = celsius;
@@ -2003,27 +1770,22 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         convertedValue = numericValue * fromUnit.factor / toUnit.factor;
       }
     }
-
     const resultText = convertedValue === null
       ? 'Введите число'
       : Number(convertedValue.toFixed(8)).toLocaleString('ru-RU', {
-          maximumFractionDigits: 8,
-        });
-
+        maximumFractionDigits: 8,
+      });
     const changeUnit = (side, direction) => {
       const currentIndex = side === 'from' ? fromIndex : toIndex;
       const nextIndex = (currentIndex + direction + units.length) % units.length;
-
       if (side === 'from') setUnitFrom(units[nextIndex].id);
       else setUnitTo(units[nextIndex].id);
     };
-
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 18,
@@ -2041,7 +1803,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
           }}>
             Конвертер величин
           </Text>
-
           <View style={{
             flexDirection: 'row',
             flexWrap: 'wrap',
@@ -2076,7 +1837,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               </Pressable>
             ))}
           </View>
-
           <View style={{
             backgroundColor: '#101A35',
             borderWidth: 1,
@@ -2092,7 +1852,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             }}>
               Исходное значение
             </Text>
-
             <TextInput
               value={unitValue}
               onChangeText={setUnitValue}
@@ -2109,7 +1868,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                 marginBottom: 13,
               }}
             />
-
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -2128,7 +1886,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   {fromUnit.name} ({fromUnit.short})
                 </Text>
               </View>
-
               <View style={{ flexDirection: 'row' }}>
                 <Pressable
                   onPress={() => changeUnit('from', -1)}
@@ -2155,11 +1912,9 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               </View>
             </View>
           </View>
-
           <View style={{ alignItems: 'center', marginVertical: 3 }}>
             <Ionicons name="arrow-down-circle" size={34} color="#53CFFF" />
           </View>
-
           <View style={{
             backgroundColor: '#101A35',
             borderWidth: 1,
@@ -2175,7 +1930,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             }}>
               Результат
             </Text>
-
             <Text style={{
               color: '#53CFFF',
               fontSize: 30,
@@ -2184,7 +1938,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             }}>
               {resultText}
             </Text>
-
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -2203,7 +1956,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                   {toUnit.name} ({toUnit.short})
                 </Text>
               </View>
-
               <View style={{ flexDirection: 'row' }}>
                 <Pressable
                   onPress={() => changeUnit('to', -1)}
@@ -2230,7 +1982,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               </View>
             </View>
           </View>
-
           <Pressable
             onPress={() => {
               setUnitFrom(unitTo);
@@ -2266,30 +2017,23 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
   // --- КОНВЕРТЕР ВАЛЮТ ---
   if (activeScreen === 'tools' && toolScreen === 'currency') {
     const amount = Number(String(currencyAmount).replace(',', '.'));
-
     const availableCurrencies = CURRENCIES
-  .filter(code => CURRENCY_NAMES[code])
-  .sort((a, b) =>
-    CURRENCY_NAMES[a].localeCompare(CURRENCY_NAMES[b], 'ru')
-  )
-  ;
-
+      .filter(code => CURRENCY_NAMES[code])
+      .sort((a, b) =>
+        CURRENCY_NAMES[a].localeCompare(CURRENCY_NAMES[b], 'ru')
+      );
     const fromRate = currencyRates?.[currencyFrom];
     const toRate = currencyRates?.[currencyTo];
-
     const convertedCurrency =
       Number.isFinite(amount) && fromRate && toRate
         ? amount * toRate / fromRate
         : null;
-
     const selectionMode = currencyPicker || 'from';
-
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={[styles.toolScrollContent, { paddingBottom: 30 }]}
@@ -2327,7 +2071,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               }}
             />
           </View>
-
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -2352,35 +2095,31 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             >
               <Ionicons name="swap-horizontal" size={23} color="#78CFFF" />
             </Pressable>
-
             <Pressable
-            onPress={() => setCurrencyPicker('from')}
-            style={{ flex: 1 }}
-          >
-            <Text style={{ color: '#A9C9E8', fontSize: 12 }}>ИЗ ВАЛЮТЫ</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
-              {currencyFrom}
-            </Text>
-            <Text style={{ color: '#78CFFF', fontSize: 12 }}>
-              {CURRENCY_NAMES[currencyFrom] || currencyFrom}
-            </Text>
-          </Pressable>
-
+              onPress={() => setCurrencyPicker('from')}
+              style={{ flex: 1 }}
+            >
+              <Text style={{ color: '#A9C9E8', fontSize: 12 }}>ИЗ ВАЛЮТЫ</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
+                {currencyFrom}
+              </Text>
+              <Text style={{ color: '#78CFFF', fontSize: 12 }}>
+                {CURRENCY_NAMES[currencyFrom] || currencyFrom}
+              </Text>
+            </Pressable>
             <Pressable
-            onPress={() => setCurrencyPicker('to')}
-            style={{ flex: 1 }}
-          >
-            <Text style={{ color: '#A9C9E8', fontSize: 12 }}>В ВАЛЮТУ</Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
-              {currencyTo}
-            </Text>
-            <Text style={{ color: '#78CFFF', fontSize: 12 }}>
-              {CURRENCY_NAMES[currencyTo] || currencyTo}
-            </Text>
-          </Pressable>
+              onPress={() => setCurrencyPicker('to')}
+              style={{ flex: 1 }}
+            >
+              <Text style={{ color: '#A9C9E8', fontSize: 12 }}>В ВАЛЮТУ</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
+                {currencyTo}
+              </Text>
+              <Text style={{ color: '#78CFFF', fontSize: 12 }}>
+                {CURRENCY_NAMES[currencyTo] || currencyTo}
+              </Text>
+            </Pressable>
           </View>
-
-
           <View style={{
             marginTop: 18,
             padding: 18,
@@ -2402,8 +2141,8 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               {convertedCurrency === null
                 ? '—'
                 : `${convertedCurrency.toLocaleString('ru-RU', {
-                    maximumFractionDigits: 4,
-                  })} ${currencyTo}`}
+                  maximumFractionDigits: 4,
+                })} ${currencyTo}`}
             </Text>
             {fromRate && toRate ? (
               <Text style={{
@@ -2422,81 +2161,76 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               </Text>
             )}
           </View>
-
-{currencyPicker ? (<>
-
-          <Text style={{
-            color: '#78CFFF',
-            fontSize: 14,
-            fontWeight: '700',
-            marginBottom: 8,
-          }}>
-            СПИСОК ВАЛЮТ — {availableCurrencies.length}
-          </Text>
-
-          <View style={{
-            backgroundColor: 'rgba(12, 24, 55, 0.88)',
-            borderWidth: 1,
-            borderColor: 'rgba(120, 207, 255, 0.3)',
-            borderRadius: 14,
-            overflow: 'hidden',
-          }}>
-            {availableCurrencies.map((code, index) => {
-              const selected = selectionMode === 'from'
-                ? currencyFrom === code
-                : currencyTo === code;
-
-              return (
-                <Pressable
-                  key={`currency-row-${code}`}
-                  onPress={() => {
-                    if (selectionMode === 'from') {
-                      setCurrencyFrom(code);
-                    } else {
-                      setCurrencyTo(code);
-                    }
-                    setCurrencyPicker(null);
-                  }}
-                  style={{
-                    minHeight: 48,
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: selected
-                      ? 'rgba(65, 155, 220, 0.22)'
-                      : 'transparent',
-                    borderBottomWidth: index === availableCurrencies.length - 1 ? 0 : 1,
-                    borderBottomColor: 'rgba(120, 207, 255, 0.13)',
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{
-                      color: selected ? '#78CFFF' : '#FFFFFF',
-                      fontSize: 15,
-                      fontWeight: '800',
-                    }}>
-                      {code}
-                    </Text>
-                    <Text style={{
-                      color: '#A9BBD4',
-                      fontSize: 12,
-                      marginTop: 2,
-                    }}>
-                      {CURRENCY_NAMES[code] || 'Название не указано'}
-                    </Text>
-                  </View>
-                  {selected ? (
-                    <Ionicons name="checkmark-circle" size={21} color="#78CFFF" />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
+          {currencyPicker ? (<>
+            <Text style={{
+              color: '#78CFFF',
+              fontSize: 14,
+              fontWeight: '700',
+              marginBottom: 8,
+            }}>
+              СПИСОК ВАЛЮТ — {availableCurrencies.length}
+            </Text>
+            <View style={{
+              backgroundColor: 'rgba(12, 24, 55, 0.88)',
+              borderWidth: 1,
+              borderColor: 'rgba(120, 207, 255, 0.3)',
+              borderRadius: 14,
+              overflow: 'hidden',
+            }}>
+              {availableCurrencies.map((code, index) => {
+                const selected = selectionMode === 'from'
+                  ? currencyFrom === code
+                  : currencyTo === code;
+                return (
+                  <Pressable
+                    key={`currency-row-${code}`}
+                    onPress={() => {
+                      if (selectionMode === 'from') {
+                        setCurrencyFrom(code);
+                      } else {
+                        setCurrencyTo(code);
+                      }
+                      setCurrencyPicker(null);
+                    }}
+                    style={{
+                      minHeight: 48,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: selected
+                        ? 'rgba(65, 155, 220, 0.22)'
+                        : 'transparent',
+                      borderBottomWidth: index === availableCurrencies.length - 1 ? 0 : 1,
+                      borderBottomColor: 'rgba(120, 207, 255, 0.13)',
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        color: selected ? '#78CFFF' : '#FFFFFF',
+                        fontSize: 15,
+                        fontWeight: '800',
+                      }}>
+                        {code}
+                      </Text>
+                      <Text style={{
+                        color: '#A9BBD4',
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}>
+                        {CURRENCY_NAMES[code] || 'Название не указано'}
+                      </Text>
+                    </View>
+                    {selected ? (
+                      <Ionicons name="checkmark-circle" size={21} color="#78CFFF" />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
           </>
           ) : null}
-
           <CosmicButton
             title={currencyLoading ? 'Обновление...' : 'Обновить курсы'}
             icon="refresh-outline"
@@ -2504,7 +2238,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             disabled={currencyLoading}
             style={{ marginTop: 16 }}
           />
-
           {currencyLoading ? (
             <ActivityIndicator
               color="#78CFFF"
@@ -2512,17 +2245,14 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               style={{ marginTop: 14 }}
             />
           ) : null}
-
           {currencyDate ? (
             <Text style={styles.currencyDate}>
               Дата курсов: {currencyDate}
             </Text>
           ) : null}
-
           {currencyError ? (
             <Text style={styles.warningText}>{currencyError}</Text>
           ) : null}
-
           <Text style={styles.currencyDisclaimer}>
             Справочные курсы Frankfurter. Они обновляются по рабочим дням
             и могут отличаться от курсов банков и обменных пунктов.
@@ -2538,7 +2268,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-
         <View style={styles.contentContainer}>
           <View style={styles.categoryRow}>
             <Pressable
@@ -2550,7 +2279,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             >
               <Text style={styles.categoryButtonText}>Таймер</Text>
             </Pressable>
-
             <Pressable
               onPress={() => setTimerTab('stopwatch')}
               style={[
@@ -2560,14 +2288,12 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             >
               <Text style={styles.categoryButtonText}>Секундомер</Text>
             </Pressable>
-                  </View>
-
+          </View>
           {timerTab === 'timer' ? (
             <View style={styles.timerContent}>
               <Text style={styles.timerDisplay}>
                 {formatClock(timerRemaining * 1000).slice(0, 8)}
               </Text>
-
               {!timerRunning ? (
                 <View style={styles.timerInputRow}>
                   <View style={{ flex: 1 }}>
@@ -2581,7 +2307,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                       placeholderTextColor="#8B91A8"
                     />
                   </View>
-
                   <View style={{ flex: 1 }}>
                     <Text style={styles.fieldLabel}>Секунды</Text>
                     <TextInput
@@ -2597,7 +2322,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               ) : (
                 <Text style={styles.timerCaption}>Таймер запущен</Text>
               )}
-
               <View style={styles.timerButtons}>
                 {!timerRunning ? (
                   <CosmicButton
@@ -2614,7 +2338,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                     style={{ flex: 1 }}
                   />
                 )}
-
                 <CosmicButton
                   title="Сброс"
                   icon="refresh"
@@ -2628,7 +2351,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               <Text style={styles.timerDisplay}>
                 {formatClock(stopwatchElapsed)}
               </Text>
-
               <View style={styles.timerButtons}>
                 {!stopwatchRunning ? (
                   <CosmicButton
@@ -2656,7 +2378,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
                     style={{ flex: 1 }}
                   />
                 )}
-
                 <CosmicButton
                   title="Сброс"
                   icon="refresh"
@@ -2674,7 +2395,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </SafeAreaView>
     );
   }
-
   // --- КАЛЬКУЛЯТОР ---
   if (activeScreen === 'tools' && toolScreen === 'calculator') {
     const calculatorButtons = [
@@ -2685,20 +2405,17 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       ['0', '.', '(', ')'],
       ['='],
     ];
-
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-
         <View style={styles.contentContainer}>
           <View style={styles.calculatorDisplay}>
             <Text style={styles.calculatorExpression} numberOfLines={2}>
               {calculatorValue}
             </Text>
           </View>
-
           <View style={styles.calculatorGrid}>
             {calculatorButtons.map((row, rowIndex) => (
               <View key={`calc-row-${rowIndex}`} style={styles.calculatorRow}>
@@ -2733,14 +2450,12 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </SafeAreaView>
     );
   }
-
   // --- ЭКРАН DEEPSEEK ---
   if (activeScreen === 'deepseek') {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
-
         <View style={styles.topNav}>
           <CosmicButton
             title="Назад"
@@ -2756,7 +2471,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
             style={{ flex: 1 }}
           />
         </View>
-
         <View style={styles.contentContainer}>
           <View style={styles.headerRow}>
             <Text style={styles.screenTitle}>DeepSeek</Text>
@@ -2770,10 +2484,8 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
               isSolidBlue
             />
           </View>
-
           <View style={styles.deepSeekWrapper}>
             <View pointerEvents="none" style={styles.cosmicInnerFrame} />
-
             {Platform.OS === 'web' ? (
               <View style={styles.webFallback}>
                 <Text style={styles.webFallbackText}>
@@ -2805,7 +2517,6 @@ const selectedNote = notes.find((note) => note.id === selectedNoteId);
       </SafeAreaView>
     );
   }
-
   return null;
 }
 // --- СТИЛИ ---
@@ -2814,7 +2525,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#05091D',
   },
-
   stars: {
     position: 'absolute',
     top: 0,
@@ -2824,7 +2534,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 0,
   },
-
   nebulaOne: {
     position: 'absolute',
     width: 270,
@@ -2836,7 +2545,6 @@ const styles = StyleSheet.create({
     opacity: 0.22,
     transform: [{ rotate: '35deg' }],
   },
-
   nebulaTwo: {
     position: 'absolute',
     width: 240,
@@ -2848,21 +2556,18 @@ const styles = StyleSheet.create({
     opacity: 0.18,
     transform: [{ rotate: '-35deg' }],
   },
-
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
-
   mainButtons: {
     width: '100%',
     paddingHorizontal: 30,
     gap: 16,
     marginTop: 10,
   },
-
   cosmicButton: {
     minHeight: 52,
     flexDirection: 'row',
@@ -2881,7 +2586,6 @@ const styles = StyleSheet.create({
     elevation: 6,
     overflow: 'hidden',
   },
-
   cosmicInnerFrame: {
     position: 'absolute',
     left: 4,
@@ -2892,33 +2596,28 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(189,235,255,0.38)',
     borderRadius: 5,
   },
-
   cosmicButtonText: {
     color: '#DDF5FF',
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.8,
   },
-
   cosmicButtonPressed: {
     transform: [{ scale: 0.97 }],
     backgroundColor: 'rgba(24,70,112,0.98)',
     borderColor: '#D7F5FF',
   },
-
   cosmicButtonRed: {
     borderColor: '#FF9AA9',
     backgroundColor: 'rgba(90,20,45,0.35)',
     shadowColor: '#FF9AA9',
   },
-
   cosmicButtonSolidBlue: {
     backgroundColor: '#376BFF',
     borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
   },
-
   topNav: {
     flexDirection: 'row',
     paddingHorizontal: 14,
@@ -2930,7 +2629,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
     alignItems: 'center',
   },
-
   contentContainer: {
     flex: 1,
     paddingHorizontal: 18,
@@ -2938,7 +2636,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     zIndex: 1,
   },
-
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2947,20 +2644,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#222A50',
   },
-
   screenTitle: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',
   },
-
   subHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
   },
-
   dateText: {
     color: '#9DA9D0',
     fontSize: 11,
@@ -2968,7 +2662,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: 8,
   },
-
   editorToolbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2976,13 +2669,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 8,
   },
-
   editorHint: {
     color: '#A5AFD5',
     fontSize: 13,
     flex: 1,
   },
-
   micButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2995,24 +2686,20 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: 'rgba(7,20,48,0.94)',
   },
-
   micButtonActive: {
     borderColor: '#FF9AA9',
     backgroundColor: 'rgba(90,20,45,0.45)',
   },
-
   micButtonText: {
     color: '#DDF5FF',
     fontSize: 12,
     fontWeight: '700',
   },
-
   listeningText: {
     color: '#FFB6C1',
     fontSize: 12,
     marginBottom: 8,
   },
-
   editorWrapper: {
     flex: 1,
     minHeight: 120,
@@ -3028,7 +2715,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     overflow: 'hidden',
   },
-
   editorInput: {
     flex: 1,
     minHeight: 120,
@@ -3038,7 +2724,6 @@ const styles = StyleSheet.create({
     padding: 16,
     textAlignVertical: 'top',
   },
-
   noteCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3050,31 +2735,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 10,
   },
-
   noteCardTitle: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 4,
   },
-
   noteCardDate: {
     color: '#A5AFD5',
     fontSize: 11,
     marginBottom: 6,
   },
-
   noteCardPreview: {
     color: '#B9C4E7',
     fontSize: 13,
   },
-
   emptyText: {
     color: '#A5AFD5',
     textAlign: 'center',
     marginTop: 40,
   },
-
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3086,7 +2766,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
-
   warningText: {
     color: '#FFD28A',
     fontSize: 12,
@@ -3094,10 +2773,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 8,
   },
-
   // --- ИНСТРУМЕНТЫ ---
-
-    toolsGrid: {
+  toolsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
@@ -3107,7 +2784,6 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
   },
-
   toolButton: {
     width: '48%',
     height: 112,
@@ -3125,7 +2801,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-
   toolInnerFrame: {
     position: 'absolute',
     left: 5,
@@ -3136,41 +2811,34 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(189,235,255,0.32)',
     borderRadius: 13,
   },
-
   toolButtonText: {
     color: '#DDF5FF',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
   },
-
   toolScrollContent: {
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 30,
   },
-
   smallIconButton: {
     width: 48,
     minHeight: 44,
     paddingHorizontal: 0,
   },
-
   // --- КАЛЕНДАРЬ ---
-
   calendarMonthRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
   },
-
   calendarMonthTitle: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '700',
   },
-
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3180,7 +2848,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
-
   calendarWeekCell: {
     width: '14.2857%',
     height: 38,
@@ -3191,13 +2858,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: 'rgba(120,207,255,0.2)',
   },
-
   calendarWeekText: {
     color: '#BDEBFF',
     fontSize: 12,
     fontWeight: '700',
   },
-
   calendarDay: {
     width: '14.2857%',
     aspectRatio: 1,
@@ -3207,20 +2872,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: 'rgba(120,207,255,0.2)',
   },
-
   calendarDaySelected: {
     backgroundColor: '#376BFF',
   },
-
   calendarDayToday: {
     backgroundColor: 'rgba(56,189,248,0.22)',
   },
-
   calendarDayText: {
     color: '#EAF3FF',
     fontSize: 14,
   },
-
   calendarSelectedBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3232,21 +2893,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: 'rgba(20,35,75,0.65)',
   },
-
   calendarSelectedText: {
     color: '#DDF5FF',
     fontSize: 14,
     flex: 1,
   },
-
   // --- КОНВЕРТЕРЫ ---
-
   categoryRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 20,
   },
-
   categoryButton: {
     flex: 1,
     minHeight: 44,
@@ -3258,19 +2915,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     backgroundColor: 'rgba(7,20,48,0.85)',
   },
-
   categoryButtonActive: {
     borderColor: '#78CFFF',
     backgroundColor: 'rgba(35,90,145,0.75)',
   },
-
   categoryButtonText: {
     color: '#B9C4E7',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
   },
-
   fieldLabel: {
     color: '#BDEBFF',
     fontSize: 14,
@@ -3278,7 +2932,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 8,
   },
-
   valueInput: {
     minHeight: 52,
     color: '#FFFFFF',
@@ -3289,13 +2942,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: 'rgba(7,20,48,0.85)',
   },
-
   optionWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-
   optionButton: {
     borderWidth: 1,
     borderColor: '#45618E',
@@ -3304,17 +2955,14 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: 'rgba(7,20,48,0.85)',
   },
-
   optionButtonActive: {
     borderColor: '#78CFFF',
     backgroundColor: 'rgba(35,90,145,0.8)',
   },
-
   optionText: {
     color: '#DDF5FF',
     fontSize: 12,
   },
-
   resultBox: {
     marginTop: 24,
     padding: 18,
@@ -3324,13 +2972,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,40,85,0.72)',
     alignItems: 'center',
   },
-
   resultCaption: {
     color: '#A5AFD5',
     fontSize: 13,
     textAlign: 'center',
   },
-
   resultValue: {
     color: '#FFFFFF',
     fontSize: 27,
@@ -3338,19 +2984,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 10,
   },
-
   currencySwapRow: {
     alignItems: 'center',
     marginVertical: 14,
   },
-
   currencyDate: {
     color: '#A5AFD5',
     textAlign: 'center',
     fontSize: 12,
     marginTop: 12,
   },
-
   currencyDisclaimer: {
     color: '#8795BC',
     fontSize: 11,
@@ -3358,16 +3001,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 18,
   },
-
   // --- ТАЙМЕР И СЕКУНДОМЕР ---
-
   timerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 30,
   },
-
   timerDisplay: {
     color: '#FFFFFF',
     fontSize: 43,
@@ -3376,29 +3016,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 28,
   },
-
   timerCaption: {
     color: '#A5AFD5',
     fontSize: 14,
     marginBottom: 20,
   },
-
   timerInputRow: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
     marginBottom: 24,
   },
-
   timerButtons: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
     marginTop: 10,
   },
-
   // --- КАЛЬКУЛЯТОР ---
-
   calculatorDisplay: {
     minHeight: 110,
     justifyContent: 'flex-end',
@@ -3410,27 +3045,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(7,20,48,0.9)',
     marginBottom: 16,
   },
-
   calculatorExpression: {
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: '700',
     textAlign: 'right',
   },
-
   calculatorGrid: {
     flex: 1,
     justifyContent: 'space-between',
     paddingBottom: 8,
   },
-
   calculatorRow: {
     flexDirection: 'row',
     gap: 9,
     flex: 1,
     marginBottom: 9,
   },
-
   calculatorButton: {
     flex: 1,
     justifyContent: 'center',
@@ -3440,25 +3071,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(7,20,48,0.94)',
   },
-
   calculatorSpecial: {
     borderColor: '#A5AFD5',
     backgroundColor: 'rgba(35,45,85,0.9)',
   },
-
   calculatorEquals: {
     borderColor: '#78CFFF',
     backgroundColor: '#376BFF',
   },
-
   calculatorButtonText: {
     color: '#DDF5FF',
     fontSize: 23,
     fontWeight: '700',
   },
-
   // --- DEEPSEEK ---
-
   deepSeekWrapper: {
     flex: 1,
     borderWidth: 1,
@@ -3473,21 +3099,18 @@ const styles = StyleSheet.create({
     marginTop: 14,
     overflow: 'hidden',
   },
-
   loading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#05091D',
   },
-
   webFallback: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-
   webFallbackText: {
     color: '#B9C4E7',
     fontSize: 15,
@@ -3495,12 +3118,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-
-
-
-
-
-
-
-
