@@ -23,6 +23,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system/legacy';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -33,6 +38,17 @@ const NOTES_KEY = 'cosmos-notes-v2';
 const DEEPSEEK_KEY = 'deepseek-last-url';
 const CURRENCY_CACHE_KEY = 'cosmos-currency-cache-v1';
 const CALENDAR_NOTES_KEY = 'cosmos-calendar-notes-v1';
+const CALENDAR_REMINDERS_KEY = 'cosmos-calendar-reminders-v1';
+// Показываем локальные уведомления календаря
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 function getLocalDateKey(date) {
   const y = date.getFullYear();
@@ -141,7 +157,8 @@ function CosmicButton({
         style,
       ]}
     >
-      {!isSolidBlue && <View pointerEvents="none" style={styles.cosmicInnerFrame} />}
+      {!isSolidBlue && <View pointerEvents="none" style={styles.cosmicInnerFrame} />
+}
       {icon ? (
         <Ionicons
           name={icon}
@@ -225,6 +242,10 @@ function MainApp() {
   const [calendarNotesLoaded, setCalendarNotesLoaded] = useState(false);
   const [calendarNotesLoadFailed, setCalendarNotesLoadFailed] = useState(false);
   const [calendarNoteText, setCalendarNoteText] = useState('');
+const [calendarReminders, setCalendarReminders] = useState({});
+const [calendarRemindersLoaded, setCalendarRemindersLoaded] = useState(false);
+const [calendarTimePickerVisible, setCalendarTimePickerVisible] = useState(false);
+const [pendingCalendarReminderText, setPendingCalendarReminderText] = useState('');
 
   const [unitCategory, setUnitCategory] = useState('length');
   const [unitValue, setUnitValue] = useState('1');
@@ -253,6 +274,11 @@ function MainApp() {
   const [calculatorValue, setCalculatorValue] = useState('0');
 
   const deepSeekSaveTimerRef = useRef(null);
+  const [reactionTargetId, setReactionTargetId] = useState(null);
+  const noteSelectionRef = useRef({ start: 0, end: 0 });
+  const noteLongPressTimerRef = useRef(null);
+  const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
+  const [notePaletteVisible, setNotePaletteVisible] = useState(false);
   const noteInputRef = useRef(null);
   const noteSaveTimer = useRef(null);
   const notesRef = useRef([]);
@@ -429,12 +455,18 @@ function MainApp() {
       clearTimeout(deepSeekSaveTimerRef.current);
     }
 
-    deepSeekSaveTimerRef.current = setTimeout(() => {
-      AsyncStorage.setItem(DEEPSEEK_KEY, url).catch(() => {});
-    }, 800);
+    deepSeekSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await AsyncStorage.setItem(
+          DEEPSEEK_URL_KEY,
+          url
+        );
+      } catch (error) {
+        console.warn('Не удалось сохранить ссылку DeepSeek:', error);
+      }
+    }, 500);
   };
 
-  // --- СОЗДАНИЕ ЗАМЕТКИ ---
   const createNote = () => {
     const now = new Date().toISOString();
     const note = {
@@ -447,9 +479,13 @@ function MainApp() {
     setNotes((prev) => [note, ...prev]);
     setSelectedNoteId(note.id);
     setNoteText('');
+    noteSelectionRef.current = { start: 0, end: 0 };
+    setReactionTargetId(null);
     setShowNotesList(false);
     setTimeout(() => noteInputRef.current?.focus(), 250);
   };
+
+
 
   // --- ИЗМЕНЕНИЕ ТЕКСТА ЗАМЕТКИ ---
   function updateNoteText(value) {
@@ -479,6 +515,69 @@ function MainApp() {
   }
 
   // --- УДАЛЕНИЕ ЗАМЕТКИ ---
+  // --- РЕАКЦИИ НА ЗАМЕТКИ ---
+  const insertNoteSymbol = (symbol) => {
+    const text = String(noteText || '');
+    const selection = noteSelectionRef.current || {
+      start: text.length,
+      end: text.length
+    };
+
+    const start = Math.max(0, Math.min(selection.start, text.length));
+    const end = Math.max(start, Math.min(selection.end, text.length));
+
+    const nextText = text.slice(0, start) + symbol + text.slice(end);
+    const nextPosition = start + symbol.length;
+    const nextSelection = { start: nextPosition, end: nextPosition };
+
+    noteSelectionRef.current = nextSelection;
+    updateNoteText(nextText);
+    setNotePaletteVisible(false);
+
+    setTimeout(() => {
+      noteInputRef.current?.focus();
+      noteInputRef.current?.setNativeProps({
+        selection: nextSelection
+      });
+    }, 100);
+  };
+  const toggleNoteReaction = (noteId, emoji) => {
+    const target = notes.find(note => note.id === noteId);
+    if (!target) return;
+
+    const current = Array.isArray(target.reactions) ? target.reactions : [];
+
+    if (current.includes(emoji)) {
+      setNotes(prev => prev.map(note =>
+        note.id === noteId
+          ? { ...note, reactions: current.filter(item => item !== emoji), updatedAt: new Date().toISOString() }
+          : note
+      ));
+      return;
+    }
+
+    const text = String(target.text || '');
+    const selection = selectedNoteId === noteId
+      ? noteSelectionRef.current || { start: text.length, end: text.length }
+      : { start: text.length, end: text.length };
+
+    const start = Math.max(0, Math.min(selection.start, text.length));
+    const end = Math.max(start, Math.min(selection.end, text.length));
+
+    const nextText = text.slice(0, start) + emoji + text.slice(end);
+    const nextPosition = start + emoji.length;
+
+    setNotes(prev => prev.map(note =>
+      note.id === noteId
+        ? { ...note, text: nextText, reactions: [...current, emoji], updatedAt: new Date().toISOString() }
+        : note
+    ));
+
+    if (selectedNoteId === noteId) {
+      setNoteText(nextText);
+      noteSelectionRef.current = { start: nextPosition, end: nextPosition };
+    }
+  };
   const deleteNote = (noteId) => {
     setNotes((prev) => prev.filter((note) => note.id !== noteId));
 
@@ -488,18 +587,139 @@ function MainApp() {
     }
   };
 
-  const selectedNote = notes.find((note) => note.id === selectedNoteId);
+  useEffect(() => {
+  let mounted = true;
+  AsyncStorage.getItem(CALENDAR_REMINDERS_KEY)
+    .then(raw => {
+      if (!mounted) return;
+      const parsed = raw ? JSON.parse(raw) : {};
+      setCalendarReminders(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+      setCalendarRemindersLoaded(true);
+    })
+    .catch(error => {
+      console.warn('Ошибка загрузки напоминаний:', error);
+      if (mounted) setCalendarRemindersLoaded(true);
+    });
+  return () => { mounted = false; };
+}, []);
+const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) => {
+  if (Platform.OS === 'web') {
+    Alert.alert('Напоминания', 'Локальные уведомления доступны в установленной версии Android.');
+    return false;
+  }
+
+  if (!(scheduledDate instanceof Date) || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+    Alert.alert('Неверное время', 'Выбери время в будущем.');
+    return false;
+  }
+
+  try {
+    let permission = await Notifications.getPermissionsAsync();
+    if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('Нет разрешения', 'Уведомления запрещены. Прежнее напоминание останется.');
+      return false;
+    }
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('calendar-reminders', {
+        name: 'Напоминания календаря',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+
+    const newId = await Notifications.scheduleNotificationAsync({
+      content: { title: 'Cosmos Notes', body: reminderText, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: scheduledDate,
+        ...(Platform.OS === 'android' ? { channelId: 'calendar-reminders' } : {}),
+      },
+    });
+
+    const previous = calendarReminders[dateKey];
+    if (previous?.id) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(previous.id);
+      } catch (error) {
+        console.warn('Не удалось отменить прежнее уведомление:', error);
+      }
+    }
+
+    const updated = {
+      ...calendarReminders,
+      [dateKey]: {
+        id: newId,
+        timestamp: scheduledDate.getTime(),
+        time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      },
+    };
+
+    await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
+    setCalendarReminders(updated);
+    return true;
+  } catch (error) {
+    console.error('Ошибка напоминания:', error);
+    Alert.alert('Ошибка', 'Не удалось создать напоминание.');
+    return false;
+  }
+};
+
+const cancelCalendarReminder = async (dateKey) => {
+  const previous = calendarReminders[dateKey];
+  if (!previous) return;
+
+  if (Platform.OS !== 'web' && previous.id) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(previous.id);
+    } catch (error) {
+      console.warn('Ошибка отмены уведомления:', error);
+    }
+  }
+
+  const updated = { ...calendarReminders };
+  delete updated[dateKey];
+  await AsyncStorage.setItem(CALENDAR_REMINDERS_KEY, JSON.stringify(updated));
+  setCalendarReminders(updated);
+};
+
+const confirmCalendarAction = (title, message, onConfirm, confirmLabel) => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) {
+      onConfirm();
+    }
+    return;
+  }
+
+  Alert.alert(title, message, [
+    { text: 'Нет', style: 'cancel' },
+    { text: confirmLabel || 'Подтвердить', style: 'destructive', onPress: onConfirm },
+  ]);
+};
+const askCalendarReminder = (text) => {
+  if (!text?.trim()) return;
+
+  if (Platform.OS === 'web') {
+    const accepted = typeof window !== 'undefined' &&
+      window.confirm('Создать напоминание для этой заметки?');
+
+    if (accepted && typeof window !== 'undefined') {
+      window.alert('Напоминания по времени доступны в установленной версии Android. Заметка сохранена.');
+    }
+    return;
+  }
+
+  setPendingCalendarReminderText(text.trim());
+  Alert.alert('Напоминание', 'Создать напоминание для этой заметки?', [
+    { text: 'Нет', style: 'cancel' },
+    { text: 'Да', onPress: () => setCalendarTimePickerVisible(true) },
+  ]);
+};
+const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
   // --- ГОЛОСОВОЙ ВВОД ---
   const startVoiceInput = async () => {
-    if (!speechAvailable) {
-      Alert.alert(
-        'Распознавание речи недоступно',
-        'Проверь подключение к интернету и наличие системного сервиса распознавания речи на телефоне.'
-      );
-      return;
-    }
-
     try {
       const permission =
         await ExpoSpeechRecognitionModule.requestPermissionsAsync();
@@ -508,6 +728,17 @@ function MainApp() {
         Alert.alert(
           'Нет доступа к микрофону',
           'Разреши Cosmos Notes использовать микрофон в настройках телефона.'
+        );
+        return;
+      }
+
+      const available =
+        ExpoSpeechRecognitionModule.isRecognitionAvailable();
+
+      if (!available) {
+        Alert.alert(
+          'Распознавание речи недоступно',
+          'Проверь подключение к интернету и наличие системного сервиса распознавания речи на телефоне.'
         );
         return;
       }
@@ -749,8 +980,16 @@ function MainApp() {
         if (operator !== '+' && operator !== '-') break;
         position++;
 
+        const rightStart = position;
         const right = parseTerm();
-        value = operator === '+' ? value + right : value - right;
+        const rightIsPercent = /%\s*$/.test(source.slice(rightStart, position));
+        const adjustedRight = rightIsPercent
+          ? value * right
+          : right;
+
+        value = operator === '+'
+          ? value + adjustedRight
+          : value - adjustedRight;
 
         if (!Number.isFinite(value)) {
           throw new Error('Некорректный результат');
@@ -934,11 +1173,12 @@ function MainApp() {
           />
           <View style={{ width: 10 }} />
           <CosmicButton
-            title="DeepSeek"
-            icon="planet-outline"
+            title={showNotesList ? 'К редактору' : 'Все заметки'}
+            icon={showNotesList ? 'create-outline' : 'list-outline'}
             onPress={() => {
               Keyboard.dismiss();
-              setActiveScreen('deepseek');
+              setShowNotesList(!showNotesList);
+              setReactionTargetId(null);
             }}
             style={{ flex: 1 }}
           />
@@ -951,32 +1191,31 @@ function MainApp() {
         >
           <View style={styles.contentContainer}>
             <View style={styles.headerRow}>
-              <Text style={styles.screenTitle}>Мои заметки</Text>
               <CosmicButton
                 title="Новая"
                 icon="add-circle-outline"
                 onPress={createNote}
-                style={{ paddingHorizontal: 16 }}
+                style={{ flex: 1, paddingHorizontal: 12 }}
               />
+              <Pressable
+                onPress={isListening ? stopVoiceInput : startVoiceInput}
+                style={[
+                  styles.micButton,
+                  isListening && styles.micButtonActive,
+                  { flex: 1 }
+                ]}
+              >
+                <Ionicons
+                  name={isListening ? 'stop' : 'mic-outline'}
+                  size={22}
+                  color={isListening ? '#FF9AA9' : '#BDEBFF'}
+                />
+                <Text style={styles.micButtonText}>
+                  {isListening ? 'Остановить' : 'Голосовой ввод'}
+                </Text>
+              </Pressable>
             </View>
 
-            <View style={styles.subHeaderRow}>
-              <CosmicButton
-                title={showNotesList ? 'К редактору' : 'Все заметки'}
-                icon={showNotesList ? 'create-outline' : 'list-outline'}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setShowNotesList(!showNotesList);
-                }}
-                style={{ width: 170 }}
-              />
-
-              <Text style={styles.dateText}>
-                {selectedNote
-                  ? `Создана: ${formatDate(selectedNote.createdAt)}`
-                  : 'Новая запись'}
-              </Text>
-            </View>
 
             {notesLoadFailed ? (
               <View style={styles.warningBox}>
@@ -1007,24 +1246,82 @@ function MainApp() {
                   .map((note) => (
                     <View key={note.id} style={styles.noteCard}>
                       <Pressable
-                        onPress={() => {
-                          setSelectedNoteId(note.id);
-                          setNoteText(note.text);
-                          setShowNotesList(false);
-                        }}
-                        style={{ flex: 1 }}
-                      >
-                        <Text style={styles.noteCardTitle}>
-                          {note.text.trim().split('\n')[0].slice(0, 40) ||
-                            'Пустая заметка'}
-                        </Text>
-                        <Text style={styles.noteCardDate}>
-                          {formatDate(note.createdAt)}
-                        </Text>
-                        <Text style={styles.noteCardPreview} numberOfLines={2}>
-                          {note.text || 'Нет текста'}
-                        </Text>
-                      </Pressable>
+  onPress={() => {
+    setSelectedNoteId(note.id);
+    setNoteText(note.text);
+    const end = (note.text || '').length;
+    noteSelectionRef.current = { start: end, end };
+    setReactionTargetId(null);
+    setShowNotesList(false);
+  }}
+  onLongPress={() => setReactionTargetId(
+    reactionTargetId === note.id ? null : note.id
+  )}
+  delayLongPress={350}
+  style={{ flex: 1 }}
+>
+  <Text style={styles.noteCardTitle}>
+    {note.text.trim().split('\n')[0].slice(0, 40) || 'Пустая заметка'}
+  </Text>
+  <Text style={styles.noteCardDate}>
+    {formatDate(note.createdAt)}
+  </Text>
+  <Text style={styles.noteCardPreview} numberOfLines={2}>
+    {note.text || 'Нет текста'}
+  </Text>
+</Pressable>
+
+<View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
+  {Array.isArray(note.reactions) ? note.reactions.map(emoji => (
+    <Text key={emoji} style={{ fontSize: 18 }}>{emoji}</Text>
+  )) : null}
+
+  <Pressable
+    onPress={() => setReactionTargetId(
+      reactionTargetId === note.id ? null : note.id
+    )}
+    style={{
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      backgroundColor: 'rgba(75,170,255,0.2)',
+      borderWidth: 1,
+      borderColor: '#78CFFF'
+    }}
+  >
+    <Text style={{ color: '#FFFFFF', fontSize: 18 }}>✦</Text>
+  </Pressable>
+</View>
+
+{reactionTargetId === note.id ? (
+  <View style={{
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(7,20,48,0.85)',
+    borderWidth: 1,
+    borderColor: '#78CFFF'
+  }}>
+    {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(emoji => (
+      <Pressable
+        key={emoji}
+        onPress={() => toggleNoteReaction(note.id, emoji)}
+        style={{
+          padding: 5,
+          borderRadius: 9,
+          backgroundColor: note.reactions?.includes(emoji)
+            ? 'rgba(75,170,255,0.35)'
+            : 'rgba(255,255,255,0.06)'
+        }}
+      >
+        <Text style={{ fontSize: 21 }}>{emoji}</Text>
+      </Pressable>
+    ))}
+  </View>
+) : null}
 
                       <CosmicButton
                         title=""
@@ -1043,44 +1340,93 @@ function MainApp() {
               </ScrollView>
             ) : (
               <View style={{ flex: 1, paddingBottom: 12 }}>
-                <View style={styles.editorToolbar}>
-                  <Text style={styles.editorHint}>
-                    Текст заметки
-                  </Text>
-
-                  <Pressable
-                    onPress={isListening ? stopVoiceInput : startVoiceInput}
-                    style={[
-                      styles.micButton,
-                      isListening && styles.micButtonActive,
-                    ]}
-                  >
-                    <Ionicons
-                      name={isListening ? 'stop' : 'mic-outline'}
-                      size={22}
-                      color={isListening ? '#FF9AA9' : '#BDEBFF'}
-                    />
-                    <Text style={styles.micButtonText}>
-                      {isListening ? 'Остановить' : 'Голосовой ввод'}
-                    </Text>
-                  </Pressable>
-                </View>
-
                 {isListening ? (
                   <Text style={styles.listeningText}>
                     Слушаю… Говори после сигнала распознавания.
                   </Text>
                 ) : null}
 
-                <View style={styles.editorWrapper}>
+<View
+  style={styles.editorWrapper}
+  onTouchStart={() => {
+    noteLongPressTimerRef.current = setTimeout(() => {
+      setNotePaletteVisible(true);
+    }, 550);
+  }}
+  onTouchEnd={() => {
+    clearTimeout(noteLongPressTimerRef.current);
+  }}
+  onTouchMove={() => {
+    clearTimeout(noteLongPressTimerRef.current);
+  }}
+  onTouchCancel={() => {
+    clearTimeout(noteLongPressTimerRef.current);
+  }}
+>
                   <View
                     pointerEvents="none"
                     style={styles.cosmicInnerFrame}
                   />
+                  {notePaletteVisible ? (
+                    <View style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      margin: 10,
+                      padding: 10,
+                      borderRadius: 14,
+                      backgroundColor: 'rgba(7,20,48,0.96)',
+                      borderWidth: 1,
+                      borderColor: '#78CFFF'
+                    }}>
+                      {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(symbol => (
+                        <Pressable
+                          key={symbol}
+                          onPress={() => insertNoteSymbol(symbol)}
+                          style={{
+                            minWidth: 38,
+                            minHeight: 38,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 9,
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }}
+                        >
+                          <Text style={{ fontSize: 23 }}>{symbol}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
                   <TextInput
                     ref={noteInputRef}
                     value={noteText}
                     onChangeText={updateNoteText}
+                    onSelectionChange={({ nativeEvent }) => {
+                      noteSelectionRef.current = nativeEvent.selection;
+                      setNoteSelection(nativeEvent.selection);
+                    }}
+                    onBlur={(event) => {
+                      const target = event.currentTarget || event.target;
+                      if (typeof target?.selectionStart === 'number') {
+                        const selection = {
+                          start: target.selectionStart,
+                          end: target.selectionEnd
+                        };
+                        noteSelectionRef.current = selection;
+                        setNoteSelection(selection);
+                      }
+                    }}
+                    onMouseUp={(event) => {
+                      const target = event.currentTarget;
+                      if (typeof target?.selectionStart === 'number') {
+                        const selection = {
+                          start: target.selectionStart,
+                          end: target.selectionEnd
+                        };
+                        noteSelectionRef.current = selection;
+                        setNoteSelection(selection);
+                      }
+                    }}
                     multiline
                     scrollEnabled
                     blurOnSubmit={false}
@@ -1270,54 +1616,165 @@ function MainApp() {
               />
 
               <View style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-end',
-                marginTop: 16,
-              }}>
-                <Pressable
-                  disabled={!calendarNotesLoaded || calendarNotesLoadFailed}
-                  accessibilityRole="button"
-                  accessibilityLabel="Сохранить заметку"
-                  onPress={async () => {
-                    const key = getLocalDateKey(selectedCalendarDate);
-                    const updated = { ...calendarNotes };
-                    const text = calendarNoteText.trim();
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: 10,
+  marginTop: 16,
+}}>
+  <Pressable
+    disabled={!calendarNotesLoaded || calendarNotesLoadFailed}
+    accessibilityRole="button"
+    accessibilityLabel="Сохранить заметку"
+    onPress={async () => {
+      const key = getLocalDateKey(selectedCalendarDate);
+      const updated = { ...calendarNotes };
+      const text = calendarNoteText.trim();
 
-                    if (text) {
-                      updated[key] = text;
-                    } else {
-                      delete updated[key];
-                    }
+      if (text) {
+        updated[key] = text;
+      } else {
+        delete updated[key];
+      }
 
-                    try {
-                      await AsyncStorage.setItem(
-                        CALENDAR_NOTES_KEY,
-                        JSON.stringify(updated)
-                      );
-                      setCalendarNotes(updated);
-                      setCalendarNoteOpen(false);
-                    } catch (error) {
-                      console.warn('Ошибка сохранения заметки:', error);
-                      Alert.alert('Ошибка', 'Не удалось сохранить заметку.');
-                    }
-                  }}
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 16,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#123C68',
-                    borderWidth: 1,
-                    borderColor: '#78CFFF',
-                    opacity: calendarNotesLoaded && !calendarNotesLoadFailed ? 1 : 0.45,
-                  }}
-                >
-                  <Ionicons name="save-outline" size={27} color="#BDEBFF" />
-                </Pressable>
-              </View>
+      try {
+        await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
+        setCalendarNotes(updated);
 
-              {calendarNotesLoadFailed ? (
+        if (!text) {
+          await cancelCalendarReminder(key);
+          setCalendarNoteOpen(false);
+          return;
+        }
+
+        setCalendarNoteOpen(false);
+        askCalendarReminder(text);
+      } catch (error) {
+        console.warn('Ошибка сохранения заметки:', error);
+        Alert.alert('Ошибка', 'Не удалось сохранить заметку.');
+      }
+    }}
+    style={{
+      width: 54,
+      height: 54,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#123C68',
+      borderWidth: 1,
+      borderColor: '#78CFFF',
+      opacity: calendarNotesLoaded && !calendarNotesLoadFailed ? 1 : 0.45,
+    }}
+  >
+    <Ionicons name="save-outline" size={27} color="#BDEBFF" />
+  </Pressable>
+
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel="Отменить напоминание"
+    onPress={() => {
+      const key = getLocalDateKey(selectedCalendarDate);
+      confirmCalendarAction(
+        'Напоминание',
+        'Отменить напоминание для этой даты?',
+        () => cancelCalendarReminder(key),
+        'Отменить'
+      );
+    }}
+    style={{
+      width: 54,
+      height: 54,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#123C68',
+      borderWidth: 1,
+      borderColor: '#78CFFF',
+    }}
+  >
+    <Ionicons name="notifications-off-outline" size={27} color="#BDEBFF" />
+  </Pressable>
+
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel="Удалить заметку"
+    onPress={() => {
+      confirmCalendarAction(
+        'Удалить заметку?',
+        'Текст заметки и напоминание будут удалены.',
+        async () => {
+          const key = getLocalDateKey(selectedCalendarDate);
+          const updated = { ...calendarNotes };
+          delete updated[key];
+
+          try {
+            await AsyncStorage.setItem(CALENDAR_NOTES_KEY, JSON.stringify(updated));
+            setCalendarNotes(updated);
+            await cancelCalendarReminder(key);
+            setCalendarNoteText('');
+            setCalendarNoteOpen(false);
+          } catch (error) {
+            console.warn('Ошибка удаления заметки:', error);
+            Alert.alert('Ошибка', 'Не удалось удалить заметку.');
+          }
+        },
+        'Удалить'
+      );
+    }}
+    style={{
+      width: 54,
+      height: 54,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#123C68',
+      borderWidth: 1,
+      borderColor: '#78CFFF',
+    }}
+  >
+    <Ionicons name="trash-outline" size={27} color="#BDEBFF" />
+  </Pressable>
+</View>
+
+              {calendarTimePickerVisible && Platform.OS !== 'web' && (
+  <DateTimePicker
+    value={new Date()}
+    mode="time"
+    display="default"
+    onChange={async (event, selectedTime) => {
+      if (event.type === 'dismissed' || !selectedTime) {
+        setCalendarTimePickerVisible(false);
+        return;
+      }
+
+      setCalendarTimePickerVisible(false);
+
+      const scheduledDate = new Date(selectedCalendarDate);
+      scheduledDate.setHours(
+        selectedTime.getHours(),
+        selectedTime.getMinutes(),
+        0,
+        0
+      );
+
+      if (scheduledDate <= new Date()) {
+        Alert.alert(
+          'Время уже прошло',
+          'Выбери время в будущем.',
+          [{ text: 'Выбрать снова', onPress: () => setCalendarTimePickerVisible(true) }]
+        );
+        return;
+      }
+
+      await scheduleCalendarReminder(
+        getLocalDateKey(selectedCalendarDate),
+        pendingCalendarReminderText,
+        scheduledDate
+      );
+    }}
+  />
+)}
+{calendarNotesLoadFailed ? (
                 <Text style={{ color: '#FF9B9B', marginTop: 12 }}>
                   Не удалось загрузить заметки. Сохранение отключено для защиты данных.
                 </Text>
@@ -1815,7 +2272,7 @@ function MainApp() {
   .sort((a, b) =>
     CURRENCY_NAMES[a].localeCompare(CURRENCY_NAMES[b], 'ru')
   )
-  .slice(0, 20);
+  ;
 
     const fromRate = currencyRates?.[currencyFrom];
     const toRate = currencyRates?.[currencyTo];
@@ -1896,74 +2353,33 @@ function MainApp() {
               <Ionicons name="swap-horizontal" size={23} color="#78CFFF" />
             </Pressable>
 
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#A9C9E8', fontSize: 12 }}>ИЗ ВАЛЮТЫ</Text>
-              <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
-                {currencyFrom}
-              </Text>
-              <Text style={{ color: '#78CFFF', fontSize: 12 }}>
-                {CURRENCY_NAMES[currencyFrom] || currencyFrom}
-              </Text>
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#A9C9E8', fontSize: 12 }}>В ВАЛЮТУ</Text>
-              <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
-                {currencyTo}
-              </Text>
-              <Text style={{ color: '#78CFFF', fontSize: 12 }}>
-                {CURRENCY_NAMES[currencyTo] || currencyTo}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{
-            flexDirection: 'row',
-            gap: 8,
-            marginBottom: 10,
-          }}>
             <Pressable
-              onPress={() => setCurrencyPicker('from')}
-              style={{
-                flex: 1,
-                padding: 12,
-                borderRadius: 12,
-                alignItems: 'center',
-                backgroundColor: selectionMode === 'from'
-                  ? 'rgba(65, 155, 220, 0.32)'
-                  : 'rgba(12, 24, 55, 0.85)',
-                borderWidth: 1,
-                borderColor: selectionMode === 'from'
-                  ? '#78CFFF'
-                  : 'rgba(120, 207, 255, 0.3)',
-              }}
-            >
-              <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                Выбрать исходную
-              </Text>
-            </Pressable>
+            onPress={() => setCurrencyPicker('from')}
+            style={{ flex: 1 }}
+          >
+            <Text style={{ color: '#A9C9E8', fontSize: 12 }}>ИЗ ВАЛЮТЫ</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
+              {currencyFrom}
+            </Text>
+            <Text style={{ color: '#78CFFF', fontSize: 12 }}>
+              {CURRENCY_NAMES[currencyFrom] || currencyFrom}
+            </Text>
+          </Pressable>
 
             <Pressable
-              onPress={() => setCurrencyPicker('to')}
-              style={{
-                flex: 1,
-                padding: 12,
-                borderRadius: 12,
-                alignItems: 'center',
-                backgroundColor: selectionMode === 'to'
-                  ? 'rgba(65, 155, 220, 0.32)'
-                  : 'rgba(12, 24, 55, 0.85)',
-                borderWidth: 1,
-                borderColor: selectionMode === 'to'
-                  ? '#78CFFF'
-                  : 'rgba(120, 207, 255, 0.3)',
-              }}
-            >
-              <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                Выбрать целевую
-              </Text>
-            </Pressable>
+            onPress={() => setCurrencyPicker('to')}
+            style={{ flex: 1 }}
+          >
+            <Text style={{ color: '#A9C9E8', fontSize: 12 }}>В ВАЛЮТУ</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800' }}>
+              {currencyTo}
+            </Text>
+            <Text style={{ color: '#78CFFF', fontSize: 12 }}>
+              {CURRENCY_NAMES[currencyTo] || currencyTo}
+            </Text>
+          </Pressable>
           </View>
+
 
           <View style={{
             marginTop: 18,
@@ -2007,6 +2423,8 @@ function MainApp() {
             )}
           </View>
 
+{currencyPicker ? (<>
+
           <Text style={{
             color: '#78CFFF',
             fontSize: 14,
@@ -2037,6 +2455,7 @@ function MainApp() {
                     } else {
                       setCurrencyTo(code);
                     }
+                    setCurrencyPicker(null);
                   }}
                   style={{
                     minHeight: 48,
@@ -2075,6 +2494,8 @@ function MainApp() {
               );
             })}
           </View>
+          </>
+          ) : null}
 
           <CosmicButton
             title={currencyLoading ? 'Обновление...' : 'Обновить курсы'}
@@ -3074,6 +3495,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+
+
+
+
+
 
 
 
