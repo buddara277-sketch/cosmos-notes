@@ -1228,363 +1228,385 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
     );
   }
   // --- ЭКРАН ЗАМЕТОК ---
-  if (activeScreen === 'notes') {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#05091D" />
-        <StarBackground />
-        <View style={styles.topNav}>
-          <CosmicButton
-            title="Назад"
-            icon="arrow-back"
-            onPress={() => {
-              Keyboard.dismiss();
-              setActiveScreen('start');
-            }}
-            style={{ flex: 1 }}
-          />
-          <View style={{ width: 10 }} />
-          <CosmicButton
-            title={showNotesList ? 'К редактору' : 'Все заметки'}
-            icon={showNotesList ? 'create-outline' : 'list-outline'}
-            onPress={() => {
-              Keyboard.dismiss();
-              setIsNoteEditing(false);
-              setShowNotesList(!showNotesList);
-              setReactionTargetId(null);
-            }}
-            style={{ flex: 1 }}
-          />
-        </View>
-        <KeyboardAvoidingView
+  // --- ЭКРАН ЗАМЕТОК ---
+if (activeScreen === 'notes') {
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor="#05091D" />
+      <StarBackground />
+      
+      {/* Верхняя навигация */}
+      <View style={styles.topNav}>
+        <CosmicButton
+          title="Назад"
+          icon="arrow-back"
+          onPress={() => {
+            Keyboard.dismiss();
+            setActiveScreen('start');
+          }}
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-        >
-          <View style={styles.contentContainer}>
-            <View style={styles.headerRow}>
-              <CosmicButton
-                title="Новая"
-                icon="add-circle-outline"
-                onPress={createNote}
-                style={{ flex: 1, paddingHorizontal: 12 }}
-              />
-              <Pressable
-                onPress={isListening ? stopVoiceInput : startVoiceInput}
-                style={[
-                  styles.micButton,
-                  isListening && styles.micButtonActive,
-                  { flex: 1 }
-                ]}
-              >
-                <Ionicons
-                  name={isListening ? 'stop' : 'mic-outline'}
-                  size={22}
-                  color={isListening ? '#FF9AA9' : '#BDEBFF'}
-                />
-                <Text style={styles.micButtonText}>
-                  {isListening ? 'Остановить' : 'Голосовой ввод'}
-                </Text>
-              </Pressable>
-            </View>
-            {notesLoadFailed ? (
-              <View style={styles.warningBox}>
-                <Ionicons name="warning-outline" size={20} color="#FFD28A" />
-                <Text style={styles.warningText}>
-                  Не удалось прочитать сохранённые заметки. Автосохранение
-                  временно отключено, чтобы не затереть прежние данные.
-                </Text>
-              </View>
-            ) : null}
-            {showNotesList ? (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 24 }}
-                keyboardShouldPersistTaps="handled"
-                nestedScrollEnabled
-              >
-                {notes.length === 0 ? (
-                  <Text style={styles.emptyText}>Пока нет заметок</Text>
-                ) : null}
-                {[...notes]
-                  .sort(
-                    (a, b) =>
-                      new Date(b.createdAt) - new Date(a.createdAt)
-                  )
-                  .map((note) => (
-                    <View key={note.id} style={styles.noteCard}>
-                      <Pressable
-                        onPress={() => {
-                          setSelectedNoteId(note.id);
-                          setNoteText(note.text);
-                          setIsNoteEditing(false);
-                          const end = (note.text || '').length;
-                          noteSelectionRef.current = { start: end, end };
-                          setReactionTargetId(null);
-                          setShowNotesList(false);
-                        }}
-                        
-                        style={{ flex: 1 }}
-                      >
-                        <Text style={styles.noteCardTitle}>
-                          {note.text.trim().split('\n')[0].slice(0, 40) || 'Пустая заметка'}
-                        </Text>
-                        <Text style={styles.noteCardDate}>
-                          {formatDate(note.createdAt)}
-                        </Text>
-                        <Text style={styles.noteCardPreview} numberOfLines={2}>
-                          {note.text || 'Нет текста'}
-                        </Text>
-                      </Pressable>
-                      <CosmicButton
-                        title=""
-                        icon="trash-outline"
-                        isRed
-                        onPress={() => deleteNote(note.id)}
-                        style={{
-                          width: 44,
-                          height: 44,
-                          paddingHorizontal: 0,
-                          minHeight: 0,
-                        }}
-                      />
-                    </View>
-                  ))}
-              </ScrollView>
-            ) : (
-              <View style={{ flex: 1, paddingBottom: 12 }}>
-                {isListening ? (
-                  <Text style={styles.listeningText}>
-                    Слушаю… Говори после сигнала распознавания.
-                  </Text>
-                ) : null}
-                <View style={styles.editorWrapper}>
-                  <View
-                    pointerEvents="none"
-                    style={styles.cosmicInnerFrame}
-                  />
-                  {notePaletteVisible ? (
-                    <View style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      margin: 10,
-                      padding: 10,
-                      borderRadius: 14,
-                      backgroundColor: 'rgba(7,20,48,0.96)',
-                      borderWidth: 1,
-                      borderColor: '#78CFFF'
-                    }}>
-                      {[
-                        '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
-                        '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
-                        '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
-                        '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
-                        '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
-                        '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
-                        '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
-                        '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
-                        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-                        '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
-                        '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
-                        '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
-                      ].map((symbol, index) => (
-                        <Pressable
-                          key={`${symbol}-${index}`}
-                          onPress={() => insertNoteSymbol(symbol)}
-                          style={{
-                            minWidth: 38,
-                            minHeight: 38,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: 9,
-                            backgroundColor: 'rgba(255,255,255,0.08)'
-                          }}
-                        >
-                          <Text style={{ fontSize: 23 }}>{symbol}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  ) : null}
-                  <ScrollView
-  style={{ flex: 1 }}
-  contentContainerStyle={{ flexGrow: 1 }}
-  keyboardDismissMode="on-drag"
-  keyboardShouldPersistTaps="handled"
-  nestedScrollEnabled
-  showsVerticalScrollIndicator
-  decelerationRate="normal"
-  onScrollBeginDrag={() => {
-    Keyboard.dismiss();
-    noteInputRef.current?.blur();
-    setIsNoteEditing(false);
-  }}
->
-  <TextInput
-    ref={noteInputRef}
-    value={noteText}
-    onChangeText={updateNoteText}
-    onSelectionChange={({ nativeEvent }) => {
-      noteSelectionRef.current = nativeEvent.selection;
-      setNoteSelection(nativeEvent.selection);
-    }}
-    onPressIn={() => setIsNoteEditing(true)}
-    onContentSizeChange={(event) => {
-      const height = event.nativeEvent.contentSize.height;
-      setNoteEditorHeight(Math.max(120, Math.ceil(height)));
-    }}
-    multiline
-    scrollEnabled={false}
-    showSoftInputOnFocus={true}
-    blurOnSubmit={false}
-    placeholder="Начни писать заметку…"
-    placeholderTextColor="#8B91A8"
-    style={[styles.editorInput, { height: noteEditorHeight, flex: 0 }]}
-    textAlignVertical="top"
-    keyboardAppearance="dark"
-  />
-</ScrollView>
-                </View>
+        />
+        <View style={{ width: 10 }} />
+        <CosmicButton
+          title={showNotesList ? 'К редактору' : 'Все заметки'}
+          icon={showNotesList ? 'create-outline' : 'list-outline'}
+          onPress={() => {
+            Keyboard.dismiss();
+            setIsNoteEditing(false);
+            setShowNotesList(!showNotesList);
+            setReactionTargetId(null);
+          }}
+          style={{ flex: 1 }}
+        />
+      </View>
 
-                {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
-                  const url = rawUrl.replace(/[),.!?;:]+$/, '');
-                  return (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <View style={styles.contentContainer}>
+          
+          {/* Кнопки управления (Новая / Голос) */}
+          <View style={styles.headerRow}>
+            <CosmicButton
+              title="Новая"
+              icon="add-circle-outline"
+              onPress={createNote}
+              style={{ flex: 1, paddingHorizontal: 12 }}
+            />
+            <Pressable
+              onPress={isListening ? stopVoiceInput : startVoiceInput}
+              style={[
+                styles.micButton,
+                isListening && styles.micButtonActive,
+                { flex: 1 }
+              ]}
+            >
+              <Ionicons
+                name={isListening ? 'stop' : 'mic-outline'}
+                size={22}
+                color={isListening ? '#FF9AA9' : '#BDEBFF'}
+              />
+              <Text style={styles.micButtonText}>
+                {isListening ? 'Стоп' : 'Голос'}
+              </Text>
+            </Pressable>
+          </View>
+
+          {notesLoadFailed ? (
+            <View style={styles.warningBox}>
+              <Ionicons name="warning-outline" size={20} color="#FFD28A" />
+              <Text style={styles.warningText}>
+                Ошибка загрузки. Автосохранение отключено.
+              </Text>
+            </View>
+          ) : null}
+
+          {showNotesList ? (
+            // --- СПИСОК ЗАМЕТОК ---
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {notes.length === 0 ? (
+                <Text style={styles.emptyText}>Пока нет заметок</Text>
+              ) : null}
+              {[...notes]
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .map((note) => (
+                  <View key={note.id} style={styles.noteCard}>
                     <Pressable
-                      key={`${url}-${index}`}
-                      onPress={() => Linking.openURL(url).catch(() =>
-                        Alert.alert('Ссылка', 'Не удалось открыть ссылку.')
-                      )}
-                      style={{ marginTop: 8, paddingHorizontal: 4 }}
+                      onPress={() => {
+                        setSelectedNoteId(note.id);
+                        setNoteText(note.text);
+                        setIsNoteEditing(true); // Сразу готовимся к редактированию
+                        const end = (note.text || '').length;
+                        noteSelectionRef.current = { start: end, end };
+                        setReactionTargetId(null);
+                        setShowNotesList(false);
+                      }}
+                      style={{ flex: 1 }}
                     >
-                      <Text style={{ color: '#78CFFF', textDecorationLine: 'underline' }}>
-                        <Ionicons name="link-outline" size={14} color="#78CFFF" /> {url}
+                      <Text style={styles.noteCardTitle}>
+                        {note.text.trim().split('\n')[0].slice(0, 40) || 'Пустая заметка'}
+                      </Text>
+                      <Text style={styles.noteCardDate}>
+                        {formatDate(note.createdAt)}
+                      </Text>
+                      <Text style={styles.noteCardPreview} numberOfLines={2}>
+                        {note.text || 'Нет текста'}
                       </Text>
                     </Pressable>
-                  );
-                })}
+                    <CosmicButton
+                      title=""
+                      icon="trash-outline"
+                      isRed
+                      onPress={() => deleteNote(note.id)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        paddingHorizontal: 0,
+                        minHeight: 0,
+                      }}
+                    />
+                  </View>
+                ))}
+            </ScrollView>
+          ) : (
+            // --- РЕДАКТОР ЗАМЕТКИ ---
+            <View style={{ flex: 1, paddingBottom: 12 }}>
+              
+              {isListening ? (
+                <Text style={styles.listeningText}>
+                  Слушаю… Говори после сигнала.
+                </Text>
+              ) : null}
 
-{selectedNote?.attachments?.length > 0 ? (
-  <View style={{ marginTop: 12, gap: 8 }}>
-    {selectedNote.attachments.map((file) => (
-      <View
-        key={file.id}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: 10,
-          borderRadius: 12,
-          backgroundColor: 'rgba(80,150,210,0.12)',
-          borderWidth: 1,
-          borderColor: 'rgba(120,207,255,0.3)',
-          gap: 10,
-        }}
-      >
-        <Ionicons name="document-outline" size={22} color="#78CFFF" />
-        <Text style={{ color: '#EAF5FF', flex: 1 }} numberOfLines={1}>
-          {file.name}
-        </Text>
-        <Pressable
-          onPress={async () => {
-            try {
-              if (Platform.OS === 'web') {
-                const blob = await getWebAttachment(file.storageKey || file.id);
-                if (!blob) throw new Error('Файл не найден в браузере');
+              <View style={styles.editorWrapper}>
+                <View pointerEvents="none" style={styles.cosmicInnerFrame} />
+                
+                {/* ПАНЕЛЬ ЭМОДЗИ / СИМВОЛОВ */}
+                {notePaletteVisible ? (
+                  <View style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    margin: 10,
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(7,20,48,0.98)', // Более плотный фон
+                    borderWidth: 1,
+                    borderColor: '#78CFFF',
+                    maxHeight: 250, // Ограничиваем высоту
+                  }}>
+                    {[
+                      '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
+                      '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
+                      '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
+                      '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
+                      '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
+                      '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
+                      '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
+                      '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
+                      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+                      '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
+                      '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
+                      '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
+                    ].map((symbol, index) => (
+                      <Pressable
+                        key={`${symbol}-${index}`}
+                        onPress={() => insertNoteSymbol(symbol)}
+                        style={{
+                          minWidth: 40,
+                          minHeight: 40,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 8,
+                          backgroundColor: 'rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        <Text style={{ fontSize: 22 }}>{symbol}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
 
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = file.name || 'Документ';
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-              } else {
-                await Sharing.shareAsync(file.uri, {
-                  mimeType: file.mimeType,
-                  dialogTitle: file.name,
-                });
-              }
-            } catch (error) {
-              console.warn('Ошибка открытия вложения:', error);
-              Alert.alert('Ошибка', 'Не удалось открыть или скачать файл.');
-            }
-          }}
-        >
-          <Ionicons name="share-outline" size={23} color="#78CFFF" />
-        </Pressable>
-        <Pressable
-          onPress={async () => {
-            try {
-              if (Platform.OS === 'web') {
-                await deleteWebAttachment(file.storageKey || file.id);
-              } else {
-                await FileSystem.deleteAsync(file.uri, { idempotent: true });
-              }
-
-              setNotes(prev => prev.map(note =>
-                note.id === selectedNote.id
-                  ? {
-                      ...note,
-                      attachments: note.attachments.filter(item => item.id !== file.id),
-                    }
-                  : note
-              ));
-            } catch (error) {
-              console.warn('Ошибка удаления вложения:', error);
-              Alert.alert('Ошибка', 'Не удалось удалить файл.');
-            }
-          }}
-        >
-          <Ionicons name="close-circle-outline" size={23} color="#FF9AA9" />
-        </Pressable>
-      </View>
-    ))}
-  </View>
-) : null}
-                {selectedNote ? (
-  <View style={{
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 18,
-    marginTop: 10,
-    marginBottom: 8,
-  }}>
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Прикрепить файл"
-      onPress={() => addNoteAttachments(selectedNote.id, setNotes)}
-      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(80,150,210,0.16)', borderWidth: 1, borderColor: '#78CFFF' }}
-    >
-      <Ionicons name="attach-outline" size={25} color="#78CFFF" />
-    </Pressable>
-
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Удалить заметку"
-      onPress={() => deleteNote(selectedNote.id)}
-      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,100,130,0.12)', borderWidth: 1, borderColor: '#FF9AA9' }}
-    >
-      <Ionicons name="trash-outline" size={23} color="#FF9AA9" />
-    </Pressable>
-
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Реакция"
-      onPress={() => { setIsNoteEditing(true); setNotePaletteVisible(prev => !prev); }}
-      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,210,100,0.12)', borderWidth: 1, borderColor: '#FFD66B' }}
-    >
-      <Ionicons name="star-outline" size={24} color="#FFD66B" />
-    </Pressable>
-  </View>
-) : null}
+                {/* ПОЛЕ ВВОДА ТЕКСТА */}
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ flexGrow: 1 }}
+                  // Убрали onScrollBeginDrag, чтобы не сбрасывать фокус при прокрутке
+                  keyboardDismissMode="interactive" // Клавиатура уезжает при скролле, но не ломает фокус
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                >
+                  <TextInput
+                    ref={noteInputRef}
+                    value={noteText}
+                    onChangeText={updateNoteText}
+                    onSelectionChange={({ nativeEvent }) => {
+                      noteSelectionRef.current = nativeEvent.selection;
+                      setNoteSelection(nativeEvent.selection);
+                    }}
+                    // Убрали onPressIn, так как TextInput сам обрабатывает фокус
+                    onContentSizeChange={(event) => {
+                      const height = event.nativeEvent.contentSize.height;
+                      setNoteEditorHeight(Math.max(120, Math.ceil(height)));
+                    }}
+                    multiline
+                    scrollEnabled={false} // Скроллит родительский ScrollView
+                    showSoftInputOnFocus={true}
+                    blurOnSubmit={false}
+                    placeholder="Начни писать заметку…"
+                    placeholderTextColor="#8B91A8"
+                    style={[styles.editorInput, { height: noteEditorHeight, flex: 0 }]}
+                    textAlignVertical="top"
+                    keyboardAppearance="dark"
+                  />
+                </ScrollView>
               </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
+
+              {/* Ссылки в тексте */}
+              {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
+                const url = rawUrl.replace(/[),.!?;:]+$/, '');
+                return (
+                  <Pressable
+                    key={`${url}-${index}`}
+                    onPress={() => Linking.openURL(url).catch(() =>
+                      Alert.alert('Ссылка', 'Не удалось открыть ссылку.')
+                    )}
+                    style={{ marginTop: 8, paddingHorizontal: 4 }}
+                  >
+                    <Text style={{ color: '#78CFFF', textDecorationLine: 'underline' }}>
+                      <Ionicons name="link-outline" size={14} color="#78CFFF" /> {url}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              {/* Вложения */}
+              {selectedNote?.attachments?.length > 0 ? (
+                <View style={{ marginTop: 12, gap: 8 }}>
+                  {selectedNote.attachments.map((file) => (
+                    <View
+                      key={file.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 10,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(80,150,210,0.12)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(120,207,255,0.3)',
+                        gap: 10,
+                      }}
+                    >
+                      <Ionicons name="document-outline" size={22} color="#78CFFF" />
+                      <Text style={{ color: '#EAF5FF', flex: 1 }} numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                      <Pressable
+                        onPress={async () => {
+                          try {
+                            if (Platform.OS === 'web') {
+                              const blob = await getWebAttachment(file.storageKey || file.id);
+                              if (!blob) throw new Error('Файл не найден');
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = file.name || 'Документ';
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            } else {
+                              await Sharing.shareAsync(file.uri, {
+                                mimeType: file.mimeType,
+                                dialogTitle: file.name,
+                              });
+                            }
+                          } catch (error) {
+                            console.warn('Ошибка открытия:', error);
+                            Alert.alert('Ошибка', 'Не удалось открыть файл.');
+                          }
+                        }}
+                      >
+                        <Ionicons name="share-outline" size={23} color="#78CFFF" />
+                      </Pressable>
+                      <Pressable
+                        onPress={async () => {
+                          try {
+                            if (Platform.OS === 'web') {
+                              await deleteWebAttachment(file.storageKey || file.id);
+                            } else {
+                              await FileSystem.deleteAsync(file.uri, { idempotent: true });
+                            }
+                            setNotes(prev => prev.map(note =>
+                              note.id === selectedNote.id
+                                ? { ...note, attachments: note.attachments.filter(item => item.id !== file.id) }
+                                : note
+                            ));
+                          } catch (error) {
+                            console.warn('Ошибка удаления:', error);
+                            Alert.alert('Ошибка', 'Не удалось удалить файл.');
+                          }
+                        }}
+                      >
+                        <Ionicons name="close-circle-outline" size={23} color="#FF9AA9" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {/* Нижняя панель действий */}
+              {selectedNote ? (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 18,
+                  marginTop: 10,
+                  marginBottom: 8,
+                }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Прикрепить файл"
+                    onPress={() => addNoteAttachments(selectedNote.id, setNotes)}
+                    style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(80,150,210,0.16)', borderWidth: 1, borderColor: '#78CFFF' }}
+                  >
+                    <Ionicons name="attach-outline" size={25} color="#78CFFF" />
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Удалить заметку"
+                    onPress={() => deleteNote(selectedNote.id)}
+                    style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,100,130,0.12)', borderWidth: 1, borderColor: '#FF9AA9' }}
+                  >
+                    <Ionicons name="trash-outline" size={23} color="#FF9AA9" />
+                  </Pressable>
+
+                  {/* КНОПКА ЭМОДЗИ: Переключает панель, скрывает клавиатуру */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Эмодзи"
+                    onPress={() => {
+                      // Логика мессенджера:
+                      // 1. Если панель уже открыта - закрываем её.
+                      // 2. Если закрыта - открываем панель и убираем клавиатуру.
+                      if (notePaletteVisible) {
+                        setNotePaletteVisible(false);
+                      } else {
+                        Keyboard.dismiss(); // Убираем клавиатуру
+                        setNotePaletteVisible(true); // Показываем панель
+                      }
+                    }}
+                    style={{ 
+                      width: 44, 
+                      height: 44, 
+                      borderRadius: 14, 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      backgroundColor: notePaletteVisible ? 'rgba(255,210,100,0.25)' : 'rgba(255,210,100,0.12)', 
+                      borderWidth: 1, 
+                      borderColor: '#FFD66B' 
+                    }}
+                  >
+                    <Ionicons name={notePaletteVisible ? "star" : "star-outline"} size={24} color="#FFD66B" />
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
   // --- РАЗДЕЛ ИНСТРУМЕНТОВ ---
   if (activeScreen === 'tools' && toolScreen === 'tools') {
     return (
