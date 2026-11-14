@@ -421,6 +421,7 @@ function MainApp() {
   const noteLongPressTimerRef = useRef(null);
   const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
   const [notePaletteVisible, setNotePaletteVisible] = useState(false);
+  const [noteEditorHeight, setNoteEditorHeight] = useState(120);
   const [isNoteEditing, setIsNoteEditing] = useState(false);
   const noteInputRef = useRef(null);
   const noteSaveTimer = useRef(null);
@@ -1405,39 +1406,44 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                       ))}
                     </View>
                   ) : null}
-                  <TextInput
-  ref={noteInputRef}
-  value={noteText}
-  onChangeText={updateNoteText}
-  onSelectionChange={({ nativeEvent }) => {
-    noteSelectionRef.current = nativeEvent.selection;
-    setNoteSelection(nativeEvent.selection);
-  }}
-  onPressIn={() => {
-    if (!isNoteEditing) {
-      setIsNoteEditing(true);
-      setTimeout(() => noteInputRef.current?.focus(), 80);
-    }
-  }}
-  onScrollBeginDrag={() => {
-    if (isNoteEditing) {
-      Keyboard.dismiss();
-      setIsNoteEditing(false);
-    }
-  }}
-  multiline
-  scrollEnabled
+                  <ScrollView
+  style={{ flex: 1 }}
+  contentContainerStyle={{ flexGrow: 1 }}
+  keyboardDismissMode="on-drag"
+  keyboardShouldPersistTaps="handled"
   nestedScrollEnabled
-  showSoftInputOnFocus={isNoteEditing}
-  blurOnSubmit={false}
+  showsVerticalScrollIndicator
   decelerationRate="normal"
-  scrollEventThrottle={16}
-  placeholder="Начни писать заметку…"
-  placeholderTextColor="#8B91A8"
-  style={styles.editorInput}
-  textAlignVertical="top"
-  keyboardAppearance="dark"
-/>
+  onScrollBeginDrag={() => {
+    Keyboard.dismiss();
+    noteInputRef.current?.blur();
+    setIsNoteEditing(false);
+  }}
+>
+  <TextInput
+    ref={noteInputRef}
+    value={noteText}
+    onChangeText={updateNoteText}
+    onSelectionChange={({ nativeEvent }) => {
+      noteSelectionRef.current = nativeEvent.selection;
+      setNoteSelection(nativeEvent.selection);
+    }}
+    onPressIn={() => setIsNoteEditing(true)}
+    onContentSizeChange={(event) => {
+      const height = event.nativeEvent.contentSize.height;
+      setNoteEditorHeight(Math.max(120, Math.ceil(height)));
+    }}
+    multiline
+    scrollEnabled={false}
+    showSoftInputOnFocus={true}
+    blurOnSubmit={false}
+    placeholder="Начни писать заметку…"
+    placeholderTextColor="#8B91A8"
+    style={[styles.editorInput, { height: noteEditorHeight, flex: 0 }]}
+    textAlignVertical="top"
+    keyboardAppearance="dark"
+  />
+</ScrollView>
                 </View>
 
                 {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
@@ -3434,5 +3440,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-
