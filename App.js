@@ -34,7 +34,81 @@ import {
 // --- КОНСТАНТЫ ---
 const NOTES_KEY = 'cosmos-notes-v2';
 const ATTACHMENTS_DIR = FileSystem.documentDirectory + 'cosmos-notes-attachments/';
+const ATTACHMENTS_DB = 'cosmos-notes-files';
+const ATTACHMENTS_STORE = 'files';
 
+function openAttachmentsDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(ATTACHMENTS_DB, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(ATTACHMENTS_STORE)) {
+        db.createObjectStore(ATTACHMENTS_STORE);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveWebAttachment(key, file) {
+  const db = await openAttachmentsDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENTS_STORE, 'readwrite');
+    transaction.objectStore(ATTACHMENTS_STORE).put(file, key);
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+  });
+}
+
+async function getWebAttachment(key) {
+  const db = await openAttachmentsDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENTS_STORE, 'readonly');
+    const request = transaction.objectStore(ATTACHMENTS_STORE).get(key);
+
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result);
+    };
+
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+  });
+}
+
+async function deleteWebAttachment(key) {
+  const db = await openAttachmentsDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ATTACHMENTS_STORE, 'readwrite');
+    transaction.objectStore(ATTACHMENTS_STORE).delete(key);
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+  });
+}
 async function addNoteAttachments(noteId, setNotes) {
   try {
     const result = await DocumentPicker.getDocumentAsync({
@@ -58,33 +132,54 @@ async function addNoteAttachments(noteId, setNotes) {
       return;
     }
 
-    await FileSystem.makeDirectoryAsync(ATTACHMENTS_DIR, {
-      intermediates: true,
-    });
-
     const attachments = [];
 
-    for (const file of selectedFiles) {
-      const safeName = (file.name || 'document').replace(/[\\/:*?"<>|]/g, '_');
-      const storedName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
-      const destination = ATTACHMENTS_DIR + storedName;
+    if (Platform.OS === 'web') {
+      for (const file of selectedFiles) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const blob = file.file || await fetch(file.uri).then(response => {
+          if (!response.ok) throw new Error('Не удалось прочитать файл');
+          return response.blob();
+        });
 
-      await FileSystem.copyAsync({
-        from: file.uri,
-        to: destination,
+        await saveWebAttachment(id, blob);
+
+        attachments.push({
+          id,
+          storageKey: id,
+          name: file.name || 'Документ',
+          mimeType: file.mimeType || blob.type || 'application/octet-stream',
+          size: file.size || blob.size || 0,
+          uri: `web:${id}`,
+        });
+      }
+    } else {
+      await FileSystem.makeDirectoryAsync(ATTACHMENTS_DIR, {
+        intermediates: true,
       });
 
-      attachments.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name || 'Документ',
-        mimeType: file.mimeType || 'application/octet-stream',
-        size: file.size || 0,
-        uri: destination,
-      });
+      for (const file of selectedFiles) {
+        const safeName = (file.name || 'document').replace(/[\\/:*?"<>|]/g, '_');
+        const storedName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+        const destination = ATTACHMENTS_DIR + storedName;
+
+        await FileSystem.copyAsync({
+          from: file.uri,
+          to: destination,
+        });
+
+        attachments.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name || 'Документ',
+          mimeType: file.mimeType || 'application/octet-stream',
+          size: file.size || 0,
+          uri: destination,
+        });
+      }
     }
 
-    setNotes((prev) =>
-      prev.map((note) =>
+    setNotes(prev =>
+      prev.map(note =>
         note.id === noteId
           ? {
               ...note,
@@ -198,6 +293,7 @@ function StarBackground() {
 function CosmicButton({
   title,
   icon,
+  iconSize = 20,
   onPress,
   style,
   isRed,
@@ -221,7 +317,7 @@ function CosmicButton({
       {icon ? (
         <Ionicons
           name={icon}
-          size={20}
+          size={iconSize}
           color={isSolidBlue ? '#FFF' : isRed ? '#FF9AA9' : '#BDEBFF'}
         />
       ) : null}
@@ -536,9 +632,12 @@ function MainApp() {
     setNotePaletteVisible(false);
     setTimeout(() => {
       noteInputRef.current?.focus();
-      noteInputRef.current?.setNativeProps({
-        selection: nextSelection
-      });
+      const input = noteInputRef.current;
+      if (typeof input?.setNativeProps === 'function') {
+        input.setNativeProps({ selection: nextSelection });
+      } else if (typeof input?.setSelectionRange === 'function') {
+        input.setSelectionRange(nextPosition, nextPosition);
+      }
     }, 100);
   };
   const toggleNoteReaction = (noteId, emoji) => {
@@ -1106,6 +1205,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                 <CosmicButton
                   title="Яндекс Диск"
                   icon="cloud-outline"
+                  iconSize={17}
                   onPress={() => Linking.openURL('https://disk.yandex.ru/').catch(() =>
                     Alert.alert('Яндекс Диск', 'Не удалось открыть Яндекс Диск.')
                   )}
@@ -1272,30 +1372,21 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                       borderColor: '#78CFFF'
                     }}>
                       {[
-  // Космос
-  '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
-  '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
-  '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
-
-  // Природа
-  '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
-  '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
-  '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
-
-  // Эмоции
-  '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
-  '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
-
-  // Любовь и настроение
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-  '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
-
-  // Символы
-  '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
-  '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵',
-].map(symbol => (
+                        '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
+                        '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
+                        '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
+                        '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
+                        '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
+                        '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
+                        '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
+                        '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
+                        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+                        '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
+                        '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
+                        '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
+                      ].map((symbol, index) => (
                         <Pressable
-                          key={symbol}
+                          key={`${symbol}-${index}`}
                           onPress={() => insertNoteSymbol(symbol)}
                           style={{
                             minWidth: 38,
@@ -1390,17 +1481,43 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
           {file.name}
         </Text>
         <Pressable
-          onPress={() => Sharing.shareAsync(file.uri, {
-            mimeType: file.mimeType,
-            dialogTitle: file.name,
-          })}
+          onPress={async () => {
+            try {
+              if (Platform.OS === 'web') {
+                const blob = await getWebAttachment(file.storageKey || file.id);
+                if (!blob) throw new Error('Файл не найден в браузере');
+
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.name || 'Документ';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+              } else {
+                await Sharing.shareAsync(file.uri, {
+                  mimeType: file.mimeType,
+                  dialogTitle: file.name,
+                });
+              }
+            } catch (error) {
+              console.warn('Ошибка открытия вложения:', error);
+              Alert.alert('Ошибка', 'Не удалось открыть или скачать файл.');
+            }
+          }}
         >
           <Ionicons name="share-outline" size={23} color="#78CFFF" />
         </Pressable>
         <Pressable
           onPress={async () => {
             try {
-              await FileSystem.deleteAsync(file.uri, { idempotent: true });
+              if (Platform.OS === 'web') {
+                await deleteWebAttachment(file.storageKey || file.id);
+              } else {
+                await FileSystem.deleteAsync(file.uri, { idempotent: true });
+              }
+
               setNotes(prev => prev.map(note =>
                 note.id === selectedNote.id
                   ? {
@@ -1410,6 +1527,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                   : note
               ));
             } catch (error) {
+              console.warn('Ошибка удаления вложения:', error);
               Alert.alert('Ошибка', 'Не удалось удалить файл.');
             }
           }}
@@ -1421,45 +1539,40 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
   </View>
 ) : null}
                 {selectedNote ? (
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      gap: 10,
-      marginTop: 10,
-    }}
-  >
+  <View style={{
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 18,
+    marginTop: 10,
+    marginBottom: 8,
+  }}>
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Прикрепить файл"
       onPress={() => addNoteAttachments(selectedNote.id, setNotes)}
-      style={{
-        width: 46,
-        height: 46,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(80,150,210,0.16)',
-        borderWidth: 1,
-        borderColor: '#78CFFF',
-      }}
+      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(80,150,210,0.16)', borderWidth: 1, borderColor: '#78CFFF' }}
     >
-      <Ionicons name="attach-outline" size={27} color="#78CFFF" />
+      <Ionicons name="attach-outline" size={25} color="#78CFFF" />
     </Pressable>
 
-    <CosmicButton
-      title="Удалить заметку"
-      icon="trash-outline"
-      isRed
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Удалить заметку"
       onPress={() => deleteNote(selectedNote.id)}
-      style={{ width: 190 }}
-    />
+      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,100,130,0.12)', borderWidth: 1, borderColor: '#FF9AA9' }}
+    >
+      <Ionicons name="trash-outline" size={23} color="#FF9AA9" />
+    </Pressable>
 
-    <CosmicButton
-      title="Реакция"
-      icon="star-outline"
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Реакция"
       onPress={() => setNotePaletteVisible(prev => !prev)}
-      style={{ width: 130 }}
-    />
+      style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,210,100,0.12)', borderWidth: 1, borderColor: '#FFD66B' }}
+    >
+      <Ionicons name="star-outline" size={24} color="#FFD66B" />
+    </Pressable>
   </View>
 ) : null}
               </View>
@@ -1794,7 +1907,11 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
         <StatusBar barStyle="light-content" backgroundColor="#05091D" />
         <StarBackground />
         {renderToolHeader()}
-        <View style={styles.contentContainer}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={true}
+        >
           <View style={styles.calendarMonthRow}>
             <CosmicButton
               icon="chevron-back"
@@ -1905,7 +2022,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
             }}
             style={{ marginTop: 18 }}
           />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
