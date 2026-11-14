@@ -13,6 +13,7 @@ import {
   Linking,
   Image,
   Alert,
+  Modal,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -424,9 +425,36 @@ function MainApp() {
   const [noteEditorHeight, setNoteEditorHeight] = useState(120);
   const [isNoteEditing, setIsNoteEditing] = useState(false);
   const noteInputRef = useRef(null);
+  const noteScrollRef = useRef(null);
+  const noteScrollOffsetRef = useRef(0);
+  const noteTouchYRef = useRef(null);
+  const noteViewportHeightRef = useRef(0);
   const noteSaveTimer = useRef(null);
   const notesRef = useRef([]);
   const notesLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const subscription = Keyboard.addListener('keyboardDidShow', () => {
+      const touchY = noteTouchYRef.current;
+      if (touchY === null || !Number.isFinite(touchY)) return;
+
+      setTimeout(() => {
+        const viewportHeight = noteViewportHeightRef.current;
+        const extra = touchY - viewportHeight + 64;
+
+        if (extra > 0) {
+          noteScrollRef.current?.scrollTo({
+            y: noteScrollOffsetRef.current + extra,
+            animated: true,
+          });
+        }
+
+        noteTouchYRef.current = null;
+      }, 180);
+    });
+
+    return () => subscription.remove();
+  }, []);
   const speechBaseTextRef = useRef('');
   const timerIntervalRef = useRef(null);
   const stopwatchIntervalRef = useRef(null);
@@ -624,22 +652,26 @@ function MainApp() {
       start: text.length,
       end: text.length
     };
+
     const start = Math.max(0, Math.min(selection.start, text.length));
     const end = Math.max(start, Math.min(selection.end, text.length));
     const nextText = text.slice(0, start) + symbol + text.slice(end);
     const nextPosition = start + symbol.length;
     const nextSelection = { start: nextPosition, end: nextPosition };
+
     noteSelectionRef.current = nextSelection;
+    setNoteSelection(nextSelection);
     updateNoteText(nextText);
+
+    Keyboard.dismiss();
+    noteInputRef.current?.blur();
+    setIsNoteEditing(false);
     setNotePaletteVisible(false);
+
     setTimeout(() => {
-      noteInputRef.current?.focus();
-      const input = noteInputRef.current;
-      if (typeof input?.setNativeProps === 'function') {
-        input.setNativeProps({ selection: nextSelection });
-      } else if (typeof input?.setSelectionRange === 'function') {
-        input.setSelectionRange(nextPosition, nextPosition);
-      }
+      noteInputRef.current?.setNativeProps({
+        selection: nextSelection
+      });
     }, 100);
   };
   const toggleNoteReaction = (noteId, emoji) => {
@@ -1366,67 +1398,39 @@ if (activeScreen === 'notes') {
 
               <View style={styles.editorWrapper}>
                 <View pointerEvents="none" style={styles.cosmicInnerFrame} />
-                
-                {/* ПАНЕЛЬ ЭМОДЗИ / СИМВОЛОВ */}
-                {notePaletteVisible ? (
-                  <View style={{
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    margin: 10,
-                    padding: 10,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(7,20,48,0.98)', // Более плотный фон
-                    borderWidth: 1,
-                    borderColor: '#78CFFF',
-                    maxHeight: 250, // Ограничиваем высоту
-                  }}>
-                    {[
-                      '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
-                      '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
-                      '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
-                      '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
-                      '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
-                      '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
-                      '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
-                      '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
-                      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-                      '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
-                      '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
-                      '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
-                    ].map((symbol, index) => (
-                      <Pressable
-                        key={`${symbol}-${index}`}
-                        onPress={() => insertNoteSymbol(symbol)}
-                        style={{
-                          minWidth: 40,
-                          minHeight: 40,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: 8,
-                          backgroundColor: 'rgba(255,255,255,0.1)'
-                        }}
-                      >
-                        <Text style={{ fontSize: 22 }}>{symbol}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
 
                 {/* ПОЛЕ ВВОДА ТЕКСТА */}
                 <ScrollView
+                  ref={noteScrollRef}
                   style={{ flex: 1 }}
                   contentContainerStyle={{ flexGrow: 1 }}
-                  // Убрали onScrollBeginDrag, чтобы не сбрасывать фокус при прокрутке
-                  keyboardDismissMode="interactive" // Клавиатура уезжает при скролле, но не ломает фокус
+                  keyboardDismissMode="on-drag"
                   keyboardShouldPersistTaps="handled"
                   nestedScrollEnabled
                   showsVerticalScrollIndicator
+                  scrollEventThrottle={16}
+                  onLayout={(event) => {
+                    noteViewportHeightRef.current = event.nativeEvent.layout.height;
+                  }}
+                  onScroll={(event) => {
+                    noteScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+                  }}
+                  onScrollBeginDrag={() => {
+                    noteTouchYRef.current = null;
+                    Keyboard.dismiss();
+                    noteInputRef.current?.blur();
+                    setIsNoteEditing(false);
+                  }}
                 >
                   <TextInput
                     ref={noteInputRef}
                     value={noteText}
                     onChangeText={updateNoteText}
+                    onPressIn={(event) => {
+                      const y = event.nativeEvent.locationY;
+                      noteTouchYRef.current = Number.isFinite(y) ? y : null;
+                      setIsNoteEditing(true);
+                    }}
                     onSelectionChange={({ nativeEvent }) => {
                       noteSelectionRef.current = nativeEvent.selection;
                       setNoteSelection(nativeEvent.selection);
@@ -1575,15 +1579,11 @@ if (activeScreen === 'notes') {
                     accessibilityRole="button"
                     accessibilityLabel="Эмодзи"
                     onPress={() => {
-                      // Логика мессенджера:
-                      // 1. Если панель уже открыта - закрываем её.
-                      // 2. Если закрыта - открываем панель и убираем клавиатуру.
-                      if (notePaletteVisible) {
-                        setNotePaletteVisible(false);
-                      } else {
-                        Keyboard.dismiss(); // Убираем клавиатуру
-                        setNotePaletteVisible(true); // Показываем панель
-                      }
+                      Keyboard.dismiss();
+                      noteInputRef.current?.blur();
+                      setIsNoteEditing(false);
+                      noteTouchYRef.current = null;
+                      setNotePaletteVisible(true);
                     }}
                     style={{ 
                       width: 44, 
@@ -1604,6 +1604,94 @@ if (activeScreen === 'notes') {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={notePaletteVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setNotePaletteVisible(false)}
+      >
+        <SafeAreaView style={{
+          flex: 1,
+          backgroundColor: '#05091D',
+          paddingHorizontal: 12,
+        }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(120,207,255,0.3)',
+          }}>
+            <Text style={{
+              color: '#EAF3FF',
+              fontSize: 20,
+              fontWeight: '600',
+            }}>
+              Эмодзи и символы
+            </Text>
+
+            <Pressable
+              onPress={() => setNotePaletteVisible(false)}
+              style={{
+                width: 42,
+                height: 42,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="close" size={30} color="#78CFFF" />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 10,
+              paddingVertical: 18,
+              paddingBottom: 40,
+            }}
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="always"
+          >
+            {[
+              '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
+              '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
+              '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
+              '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
+              '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
+              '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
+              '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
+              '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
+              '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+              '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
+              '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
+              '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
+            ].map((symbol, index) => (
+              <Pressable
+                key={`${symbol}-${index}`}
+                onPress={() => insertNoteSymbol(symbol)}
+                style={{
+                  width: 54,
+                  height: 54,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(120,207,255,0.12)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(120,207,255,0.25)',
+                }}
+              >
+                <Text style={{ fontSize: 29 }}>{symbol}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
