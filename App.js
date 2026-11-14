@@ -1168,20 +1168,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                     Слушаю… Говори после сигнала распознавания.
                   </Text>
                 ) : null}
-                <View
-                  style={styles.editorWrapper}
-                  onTouchStart={() => {
-                    noteLongPressTimerRef.current = setTimeout(() => {
-                      setNotePaletteVisible(true);
-                    }, 550);
-                  }}
-                  onTouchEnd={() => {
-                    clearTimeout(noteLongPressTimerRef.current);
-                  }}
-                  onTouchCancel={() => {
-                    clearTimeout(noteLongPressTimerRef.current);
-                  }}
-                >
+                <View style={styles.editorWrapper}>
                   <View
                     pointerEvents="none"
                     style={styles.cosmicInnerFrame}
@@ -1198,7 +1185,29 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                       borderWidth: 1,
                       borderColor: '#78CFFF'
                     }}>
-                      {['✦', '✧', '✨', '💫', '⚡', '☄️', '🔆', '🌀', '🌟', '👾', '🤖', '👽', '🚀', '🛸', '🛰️', '🌍', '🌙', '🧬'].map(symbol => (
+                      {[
+  // Космос
+  '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
+  '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
+  '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
+
+  // Природа
+  '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
+  '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
+  '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
+
+  // Эмоции
+  '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
+  '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
+
+  // Любовь и настроение
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+  '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
+
+  // Символы
+  '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
+  '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵',
+].map(symbol => (
                         <Pressable
                           key={symbol}
                           onPress={() => insertNoteSymbol(symbol)}
@@ -1257,16 +1266,33 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                   />
                 </View>
                 {selectedNote ? (
-                  <View style={{ alignItems: 'flex-end', marginTop: 10 }}>
-                    <CosmicButton
-                      title="Удалить заметку"
-                      icon="trash-outline"
-                      isRed
-                      onPress={() => deleteNote(selectedNote.id)}
-                      style={{ width: 190 }}
-                    />
-                  </View>
-                ) : null}
+  <View
+    style={{
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 10,
+    }}
+  >
+    <CosmicButton
+      title="Удалить заметку"
+      icon="trash-outline"
+      isRed
+      onPress={() => deleteNote(selectedNote.id)}
+      style={{ width: 190 }}
+    />
+
+    <CosmicButton
+      title="Реакция"
+      icon="star-outline"
+      onPress={() => {
+        setNotePaletteVisible(prev => !prev);
+      }}
+      style={{ width: 130 }}
+    />
+  </View>
+) : null}
               </View>
             )}
           </View>
