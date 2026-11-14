@@ -14,7 +14,6 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1364,8 +1363,87 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                     pointerEvents="none"
                     style={styles.cosmicInnerFrame}
                   />
-
-                  
+                  {notePaletteVisible ? (
+                    <View style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      margin: 10,
+                      padding: 10,
+                      borderRadius: 14,
+                      backgroundColor: 'rgba(7,20,48,0.96)',
+                      borderWidth: 1,
+                      borderColor: '#78CFFF'
+                    }}>
+                      {[
+                        '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
+                        '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
+                        '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
+                        '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
+                        '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
+                        '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
+                        '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
+                        '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
+                        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+                        '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
+                        '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
+                        '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
+                      ].map((symbol, index) => (
+                        <Pressable
+                          key={`${symbol}-${index}`}
+                          onPress={() => insertNoteSymbol(symbol)}
+                          style={{
+                            minWidth: 38,
+                            minHeight: 38,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 9,
+                            backgroundColor: 'rgba(255,255,255,0.08)'
+                          }}
+                        >
+                          <Text style={{ fontSize: 23 }}>{symbol}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                  <ScrollView
+  style={{ flex: 1 }}
+  contentContainerStyle={{ flexGrow: 1 }}
+  keyboardDismissMode="on-drag"
+  keyboardShouldPersistTaps="handled"
+  nestedScrollEnabled
+  showsVerticalScrollIndicator
+  decelerationRate="normal"
+  onScrollBeginDrag={() => {
+    Keyboard.dismiss();
+    noteInputRef.current?.blur();
+    setIsNoteEditing(false);
+  }}
+>
+  <TextInput
+    ref={noteInputRef}
+    value={noteText}
+    onChangeText={updateNoteText}
+    onSelectionChange={({ nativeEvent }) => {
+      noteSelectionRef.current = nativeEvent.selection;
+      setNoteSelection(nativeEvent.selection);
+    }}
+    onPressIn={() => setIsNoteEditing(true)}
+    onContentSizeChange={(event) => {
+      const height = event.nativeEvent.contentSize.height;
+      setNoteEditorHeight(Math.max(120, Math.ceil(height)));
+    }}
+    multiline
+    scrollEnabled={false}
+    showSoftInputOnFocus={true}
+    blurOnSubmit={false}
+    placeholder="Начни писать заметку…"
+    placeholderTextColor="#8B91A8"
+    style={[styles.editorInput, { height: noteEditorHeight, flex: 0 }]}
+    textAlignVertical="top"
+    keyboardAppearance="dark"
+  />
+</ScrollView>
                 </View>
 
                 {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
@@ -1493,7 +1571,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Реакция"
-      onPress={() => { Keyboard.dismiss(); noteInputRef.current?.blur(); setIsNoteEditing(false); setNotePaletteVisible(prev => !prev); }}
+      onPress={() => { setIsNoteEditing(true); setNotePaletteVisible(prev => !prev); }}
       style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,210,100,0.12)', borderWidth: 1, borderColor: '#FFD66B' }}
     >
       <Ionicons name="star-outline" size={24} color="#FFD66B" />
@@ -1504,75 +1582,6 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
             )}
           </View>
         </KeyboardAvoidingView>
-        <Modal
-          visible={notePaletteVisible}
-          transparent
-          animationType="fade"
-          statusBarTranslucent
-          onRequestClose={() => setNotePaletteVisible(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,12,0.78)', justifyContent: 'center', padding: 16 }}>
-            <Pressable
-              onPress={() => setNotePaletteVisible(false)}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={{
-              maxHeight: '78%',
-              borderRadius: 18,
-              padding: 14,
-              backgroundColor: '#071430',
-              borderWidth: 1,
-              borderColor: '#78CFFF',
-            }}>
-              <Text style={{ color: '#EAF3FF', fontSize: 17, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
-                Выбери символ
-              </Text>
-              <ScrollView
-                keyboardShouldPersistTaps="always"
-                showsVerticalScrollIndicator
-                nestedScrollEnabled
-              >
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
-                  {[
-                    '✦', '✧', '✨', '💫', '🌟', '⭐', '🌠', '☄️',
-                    '🌌', '🪐', '🌍', '🌎', '🌏', '🌙', '🌛', '🌞',
-                    '🚀', '🛸', '🛰️', '👽', '👾', '🤖',
-                    '🌈', '☀️', '🌤️', '⛅', '🌧️', '❄️', '🔥', '💧',
-                    '🌊', '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿',
-                    '🌳', '🍁', '🍄', '🦋', '🐝', '🐬',
-                    '😀', '😊', '😍', '🥰', '😘', '😎', '🤗', '😇',
-                    '🤔', '😴', '🥳', '😂', '😌', '😉', '🤩', '🥹',
-                    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
-                    '💖', '💕', '💞', '💗', '💝', '💘', '💌', '💐',
-                    '⚡', '🔥', '💎', '🔮', '🧿', '♾️', '☯️', '🕉️',
-                    '☮️', '❣️', '💯', '🎯', '🎁', '🏆', '🎨', '🎵'
-                  ].map((symbol, index) => (
-                    <Pressable
-                      key={`${symbol}-${index}`}
-                      onPress={() => insertNoteSymbol(symbol)}
-                      style={{
-                        width: 44,
-                        height: 44,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 9,
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                      }}
-                    >
-                      <Text style={{ fontSize: 25 }}>{symbol}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </ScrollView>
-              <Pressable
-                onPress={() => setNotePaletteVisible(false)}
-                style={{ padding: 12, marginTop: 8, alignItems: 'center' }}
-              >
-                <Text style={{ color: '#78CFFF', fontSize: 15 }}>Закрыть</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     );
   }
