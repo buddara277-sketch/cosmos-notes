@@ -23,6 +23,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
 import {
@@ -31,6 +33,77 @@ import {
 } from 'expo-speech-recognition';
 // --- КОНСТАНТЫ ---
 const NOTES_KEY = 'cosmos-notes-v2';
+const ATTACHMENTS_DIR = FileSystem.documentDirectory + 'cosmos-notes-attachments/';
+
+async function addNoteAttachments(noteId, setNotes) {
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: '*/*',
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled || !result.assets?.length) return;
+
+    const selectedFiles = result.assets.filter((file) => {
+      const name = (file.name || '').toLowerCase();
+      const mime = (file.mimeType || '').toLowerCase();
+
+      return !mime.startsWith('image/') &&
+        !/\.(jpg|jpeg|png|gif|webp|heic|bmp)$/i.test(name);
+    });
+
+    if (!selectedFiles.length) {
+      Alert.alert('Файлы', 'Выбери документы, а не фотографии.');
+      return;
+    }
+
+    await FileSystem.makeDirectoryAsync(ATTACHMENTS_DIR, {
+      intermediates: true,
+    });
+
+    const attachments = [];
+
+    for (const file of selectedFiles) {
+      const safeName = (file.name || 'document').replace(/[\\/:*?"<>|]/g, '_');
+      const storedName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+      const destination = ATTACHMENTS_DIR + storedName;
+
+      await FileSystem.copyAsync({
+        from: file.uri,
+        to: destination,
+      });
+
+      attachments.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: file.name || 'Документ',
+        mimeType: file.mimeType || 'application/octet-stream',
+        size: file.size || 0,
+        uri: destination,
+      });
+    }
+
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === noteId
+          ? {
+              ...note,
+              attachments: [
+                ...(Array.isArray(note.attachments) ? note.attachments : []),
+                ...attachments,
+              ],
+              updatedAt: new Date().toISOString(),
+            }
+          : note
+      )
+    );
+
+    Alert.alert('Готово', `Добавлено файлов: ${attachments.length}`);
+  } catch (error) {
+    console.warn('Ошибка добавления файлов:', error);
+    Alert.alert('Ошибка', 'Не удалось прикрепить документы.');
+  }
+}
 const DEEPSEEK_KEY = 'deepseek-last-url';
 const CURRENCY_CACHE_KEY = 'cosmos-currency-cache-v1';
 const CALENDAR_NOTES_KEY = 'cosmos-calendar-notes-v1';
@@ -1021,11 +1094,24 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
               icon="document-text-outline"
               onPress={() => setActiveScreen('notes')}
             />
-            <CosmicButton
-              title="DeepSeek"
-              icon="planet-outline"
-              onPress={() => setActiveScreen('deepseek')}
-            />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <CosmicButton
+                  title="DeepSeek"
+                  icon="planet-outline"
+                  onPress={() => setActiveScreen('deepseek')}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <CosmicButton
+                  title="Яндекс Диск"
+                  icon="cloud-outline"
+                  onPress={() => Linking.openURL('https://disk.yandex.ru/').catch(() =>
+                    Alert.alert('Яндекс Диск', 'Не удалось открыть Яндекс Диск.')
+                  )}
+                />
+              </View>
+            </View>
             <CosmicButton
               title="Инструменты"
               icon="grid-outline"
@@ -1265,6 +1351,75 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                     keyboardAppearance="dark"
                   />
                 </View>
+
+                {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
+                  const url = rawUrl.replace(/[),.!?;:]+$/, '');
+                  return (
+                    <Pressable
+                      key={`${url}-${index}`}
+                      onPress={() => Linking.openURL(url).catch(() =>
+                        Alert.alert('Ссылка', 'Не удалось открыть ссылку.')
+                      )}
+                      style={{ marginTop: 8, paddingHorizontal: 4 }}
+                    >
+                      <Text style={{ color: '#78CFFF', textDecorationLine: 'underline' }}>
+                        <Ionicons name="link-outline" size={14} color="#78CFFF" /> {url}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+
+{selectedNote?.attachments?.length > 0 ? (
+  <View style={{ marginTop: 12, gap: 8 }}>
+    {selectedNote.attachments.map((file) => (
+      <View
+        key={file.id}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: 10,
+          borderRadius: 12,
+          backgroundColor: 'rgba(80,150,210,0.12)',
+          borderWidth: 1,
+          borderColor: 'rgba(120,207,255,0.3)',
+          gap: 10,
+        }}
+      >
+        <Ionicons name="document-outline" size={22} color="#78CFFF" />
+        <Text style={{ color: '#EAF5FF', flex: 1 }} numberOfLines={1}>
+          {file.name}
+        </Text>
+        <Pressable
+          onPress={() => Sharing.shareAsync(file.uri, {
+            mimeType: file.mimeType,
+            dialogTitle: file.name,
+          })}
+        >
+          <Ionicons name="share-outline" size={23} color="#78CFFF" />
+        </Pressable>
+        <Pressable
+          onPress={async () => {
+            try {
+              await FileSystem.deleteAsync(file.uri, { idempotent: true });
+              setNotes(prev => prev.map(note =>
+                note.id === selectedNote.id
+                  ? {
+                      ...note,
+                      attachments: note.attachments.filter(item => item.id !== file.id),
+                    }
+                  : note
+              ));
+            } catch (error) {
+              Alert.alert('Ошибка', 'Не удалось удалить файл.');
+            }
+          }}
+        >
+          <Ionicons name="close-circle-outline" size={23} color="#FF9AA9" />
+        </Pressable>
+      </View>
+    ))}
+  </View>
+) : null}
                 {selectedNote ? (
   <View
     style={{
@@ -1275,6 +1430,22 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
       marginTop: 10,
     }}
   >
+    <Pressable
+      onPress={() => addNoteAttachments(selectedNote.id, setNotes)}
+      style={{
+        width: 46,
+        height: 46,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(80,150,210,0.16)',
+        borderWidth: 1,
+        borderColor: '#78CFFF',
+      }}
+    >
+      <Ionicons name="attach-outline" size={27} color="#78CFFF" />
+    </Pressable>
+
     <CosmicButton
       title="Удалить заметку"
       icon="trash-outline"
@@ -1286,9 +1457,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
     <CosmicButton
       title="Реакция"
       icon="star-outline"
-      onPress={() => {
-        setNotePaletteVisible(prev => !prev);
-      }}
+      onPress={() => setNotePaletteVisible(prev => !prev)}
       style={{ width: 130 }}
     />
   </View>

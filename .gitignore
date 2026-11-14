@@ -53,3 +53,7 @@ android/build/
 android/app/build/
 android/local.properties
 android/app/build.gradle.backup
+
+# APK release files
+*.apk
+АПК блокнот/
