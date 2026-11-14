@@ -1406,61 +1406,42 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                     </View>
                   ) : null}
                   {isNoteEditing ? (
-<TextInput
-                    ref={noteInputRef}
-                    value={noteText}
-                    onChangeText={updateNoteText}
-                    onSelectionChange={({ nativeEvent }) => {
-                      noteSelectionRef.current = nativeEvent.selection;
-                      setNoteSelection(nativeEvent.selection);
-                    }}
-                    onBlur={(event) => {
-                      const target = event.currentTarget || event.target;
-                      if (typeof target?.selectionStart === 'number') {
-                        const selection = {
-                          start: target.selectionStart,
-                          end: target.selectionEnd
-                        };
-                        noteSelectionRef.current = selection;
-                        setNoteSelection(selection);
-                      }
-                    }}
-                    onMouseUp={(event) => {
-                      const target = event.currentTarget;
-                      if (typeof target?.selectionStart === 'number') {
-                        const selection = {
-                          start: target.selectionStart,
-                          end: target.selectionEnd
-                        };
-                        noteSelectionRef.current = selection;
-                        setNoteSelection(selection);
-                      }
-                    }}
-                    multiline
-                    scrollEnabled
-                    blurOnSubmit={false}
-                    placeholder="Начни писать заметку…"
-                    placeholderTextColor="#8B91A8"
-                    style={styles.editorInput}
-                    textAlignVertical="top"
-                    keyboardAppearance="dark"
-                  />
+  <TextInput
+    ref={noteInputRef}
+    value={noteText}
+    onChangeText={updateNoteText}
+    onSelectionChange={({ nativeEvent }) => {
+      noteSelectionRef.current = nativeEvent.selection;
+      setNoteSelection(nativeEvent.selection);
+    }}
+    multiline
+    scrollEnabled
+    nestedScrollEnabled
+    blurOnSubmit={false}
+    placeholder="Начни писать заметку…"
+    placeholderTextColor="#8B91A8"
+    style={styles.editorInput}
+    textAlignVertical="top"
+    keyboardAppearance="dark"
+  />
 ) : (
   <ScrollView
     style={{ flex: 1 }}
     contentContainerStyle={{ flexGrow: 1, padding: 16 }}
     showsVerticalScrollIndicator
     keyboardShouldPersistTaps="handled"
-    decelerationRate="fast"
+    nestedScrollEnabled
+    directionalLockEnabled
     bounces={false}
     overScrollMode="never"
-    nestedScrollEnabled
   >
     <Pressable
       style={{ flexGrow: 1 }}
       onPress={() => {
         setIsNoteEditing(true);
-        setTimeout(() => noteInputRef.current?.focus(), 150);
+        requestAnimationFrame(() => {
+          noteInputRef.current?.focus();
+        });
       }}
     >
       <Text style={{
@@ -3469,3 +3450,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
