@@ -421,6 +421,7 @@ function MainApp() {
   const noteLongPressTimerRef = useRef(null);
   const [noteSelection, setNoteSelection] = useState({ start: 0, end: 0 });
   const [notePaletteVisible, setNotePaletteVisible] = useState(false);
+  const [isNoteEditing, setIsNoteEditing] = useState(false);
   const noteInputRef = useRef(null);
   const noteSaveTimer = useRef(null);
   const notesRef = useRef([]);
@@ -589,7 +590,7 @@ function MainApp() {
     noteSelectionRef.current = { start: 0, end: 0 };
     setReactionTargetId(null);
     setShowNotesList(false);
-    setTimeout(() => noteInputRef.current?.focus(), 250);
+    setIsNoteEditing(true);
   };
   // --- ИЗМЕНЕНИЕ ТЕКСТА ЗАМЕТКИ ---
   function updateNoteText(value) {
@@ -1247,6 +1248,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
             icon={showNotesList ? 'create-outline' : 'list-outline'}
             onPress={() => {
               Keyboard.dismiss();
+              setIsNoteEditing(false);
               setShowNotesList(!showNotesList);
               setReactionTargetId(null);
             }}
@@ -1314,6 +1316,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                         onPress={() => {
                           setSelectedNoteId(note.id);
                           setNoteText(note.text);
+                          setIsNoteEditing(false);
                           const end = (note.text || '').length;
                           noteSelectionRef.current = { start: end, end };
                           setReactionTargetId(null);
@@ -1402,7 +1405,8 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                       ))}
                     </View>
                   ) : null}
-                  <TextInput
+                  {isNoteEditing ? (
+<TextInput
                     ref={noteInputRef}
                     value={noteText}
                     onChangeText={updateNoteText}
@@ -1441,6 +1445,34 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
                     textAlignVertical="top"
                     keyboardAppearance="dark"
                   />
+) : (
+  <ScrollView
+    style={{ flex: 1 }}
+    contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+    showsVerticalScrollIndicator
+    keyboardShouldPersistTaps="handled"
+    decelerationRate="fast"
+    bounces={false}
+    overScrollMode="never"
+    nestedScrollEnabled
+  >
+    <Pressable
+      style={{ flexGrow: 1 }}
+      onPress={() => {
+        setIsNoteEditing(true);
+        setTimeout(() => noteInputRef.current?.focus(), 150);
+      }}
+    >
+      <Text style={{
+        color: noteText ? '#EAF3FF' : '#8B91A8',
+        fontSize: 16,
+        lineHeight: 24
+      }}>
+        {noteText || 'Нажми здесь, чтобы начать писать…'}
+      </Text>
+    </Pressable>
+  </ScrollView>
+)}
                 </View>
 
                 {(noteText.match(/https?:\/\/[^\s]+/g) || []).map((rawUrl, index) => {
@@ -1568,7 +1600,7 @@ const scheduleCalendarReminder = async (dateKey, reminderText, scheduledDate) =>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Реакция"
-      onPress={() => setNotePaletteVisible(prev => !prev)}
+      onPress={() => { setIsNoteEditing(true); setNotePaletteVisible(prev => !prev); }}
       style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,210,100,0.12)', borderWidth: 1, borderColor: '#FFD66B' }}
     >
       <Ionicons name="star-outline" size={24} color="#FFD66B" />
