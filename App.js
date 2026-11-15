@@ -1407,14 +1407,12 @@ if (activeScreen === 'notes') {
                   <TextInput
                     ref={noteInputRef}
                     value={noteText}
-                    selection={noteSelection}
                     onChangeText={updateNoteText}
                     onPressIn={() => {
   setIsNoteEditing(true);
 }}
                     onSelectionChange={({ nativeEvent }) => {
                       noteSelectionRef.current = nativeEvent.selection;
-                      setNoteSelection(nativeEvent.selection);
                     }}
                     onContentSizeChange={(event) => {
                       const height = event.nativeEvent.contentSize.height;
@@ -3537,3 +3535,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
