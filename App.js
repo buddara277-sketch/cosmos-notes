@@ -434,6 +434,8 @@ function MainApp() {
   const noteSaveTimer = useRef(null);
   const notesRef = useRef([]);
   const notesLoadedRef = useRef(false);
+  const noteTextLengthRef = useRef(noteText.length);
+  noteTextLengthRef.current = noteText.length;
 
   const scrollNoteCursorIntoView = () => {
     const touchY = noteTouchYRef.current;
@@ -459,7 +461,16 @@ function MainApp() {
       setNoteKeyboardVisible(true);
 
       setTimeout(() => {
-        scrollNoteCursorIntoView();
+        const selection = noteSelectionRef.current;
+        if (
+          selection &&
+          selection.start === selection.end &&
+          selection.end >= noteTextLengthRef.current
+        ) {
+          noteScrollRef.current?.scrollToEnd({ animated: true });
+        } else {
+          scrollNoteCursorIntoView();
+        }
       }, 250);
     });
 
