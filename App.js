@@ -425,7 +425,7 @@ function MainApp() {
     const [noteEditorHeight, setNoteEditorHeight] = useState(120);
   const [isNoteEditing, setIsNoteEditing] = useState(false);
   const [noteKeyboardVisible, setNoteKeyboardVisible] = useState(false);
-
+const [keyboardHeight, setKeyboardHeight] = useState(0);
   const noteInputRef = useRef(null);
   const noteScrollRef = useRef(null);
   const noteScrollOffsetRef = useRef(0);
@@ -458,6 +458,7 @@ function MainApp() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
       noteKeyboardTopRef.current = event.endCoordinates?.screenY ?? null;
+setKeyboardHeight(event.endCoordinates?.height ?? 0);
       setNoteKeyboardVisible(true);
 
       setTimeout(() => {
@@ -476,6 +477,7 @@ function MainApp() {
 
     const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
       setNoteKeyboardVisible(false);
+setKeyboardHeight(0);
       noteKeyboardTopRef.current = null;
       noteTouchYRef.current = null;
     });
@@ -1428,7 +1430,10 @@ if (activeScreen === 'notes') {
 <ScrollView
   ref={noteScrollRef}
   style={{ flex: 1 }}
-  contentContainerStyle={{ flexGrow: 1 }}
+  contentContainerStyle={{
+  flexGrow: 1,
+  paddingBottom: keyboardHeight + 60,
+}}
   keyboardDismissMode="on-drag"
   keyboardShouldPersistTaps="handled"
   nestedScrollEnabled
