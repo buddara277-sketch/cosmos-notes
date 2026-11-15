@@ -424,40 +424,27 @@ function MainApp() {
   const [notePaletteVisible, setNotePaletteVisible] = useState(false);
   const [noteEditorHeight, setNoteEditorHeight] = useState(120);
   const [isNoteEditing, setIsNoteEditing] = useState(false);
+const [noteKeyboardVisible, setNoteKeyboardVisible] = useState(false);
+const [noteEditorViewportHeight, setNoteEditorViewportHeight] = useState(120);
   const noteInputRef = useRef(null);
-  const noteScrollRef = useRef(null);
-  const noteScrollOffsetRef = useRef(0);
-  const noteTouchYRef = useRef(null);
-  const noteViewportHeightRef = useRef(0);
   const noteSaveTimer = useRef(null);
   const notesRef = useRef([]);
   const notesLoadedRef = useRef(false);
 
   useEffect(() => {
-    const subscription = Keyboard.addListener('keyboardDidShow', () => {
-      const touchY = noteTouchYRef.current;
-      const selection = noteSelectionRef.current;
+  const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+    setNoteKeyboardVisible(true);
+  });
 
-      setTimeout(() => {
+  const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+    setNoteKeyboardVisible(false);
+  });
 
-        const viewportHeight = noteViewportHeightRef.current;
-        if (touchY !== null && Number.isFinite(touchY)) {
-          const extra = touchY - viewportHeight + 64;
-
-          if (extra > 0) {
-            noteScrollRef.current?.scrollTo({
-              y: noteScrollOffsetRef.current + extra,
-              animated: true
-            });
-          }
-        }
-
-        noteTouchYRef.current = null;
-      }, 250);
-    });
-
-    return () => subscription.remove();
-  }, []);
+  return () => {
+    showSubscription.remove();
+    hideSubscription.remove();
+  };
+}, []);
   const speechBaseTextRef = useRef('');
   const timerIntervalRef = useRef(null);
   const stopwatchIntervalRef = useRef(null);
@@ -1394,58 +1381,60 @@ if (activeScreen === 'notes') {
                 </Text>
               ) : null}
 
-              <View style={styles.editorWrapper}>
+              <View
+  style={styles.editorWrapper}
+  onLayout={(event) => {
+    const height = event.nativeEvent.layout.height;
+    setNoteEditorViewportHeight(Math.max(120, Math.floor(height)));
+  }}
+>
                 <View pointerEvents="none" style={styles.cosmicInnerFrame} />
 
                 {/* ПОЛЕ ВВОДА ТЕКСТА */}
-                <ScrollView
-                  ref={noteScrollRef}
-                  style={{ flex: 1 }}
-                  contentContainerStyle={{ flexGrow: 1 }}
-                  keyboardDismissMode="on-drag"
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator
-                  scrollEventThrottle={16}
-                  onLayout={(event) => {
-                    noteViewportHeightRef.current = event.nativeEvent.layout.height;
-                  }}
-                  onScroll={(event) => {
-                    noteScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-                  }}
-                  onScrollBeginDrag={() => {
-                    noteTouchYRef.current = null;
-                    Keyboard.dismiss();
-                    noteInputRef.current?.blur();
-                    setIsNoteEditing(false);
-                  }}
-                >
+<ScrollView
+  style={{ flex: 1 }}
+  contentContainerStyle={{ flexGrow: 1 }}
+  keyboardDismissMode="on-drag"
+  keyboardShouldPersistTaps="handled"
+  nestedScrollEnabled
+  showsVerticalScrollIndicator
+  onScrollBeginDrag={() => {
+    Keyboard.dismiss();
+    noteInputRef.current?.blur();
+    setIsNoteEditing(false);
+  }}
+>
                   <TextInput
                     ref={noteInputRef}
                     value={noteText}
                     selection={noteSelection}
                     onChangeText={updateNoteText}
-                    onPressIn={(event) => {
-                      const y = event.nativeEvent.locationY;
-                      noteTouchYRef.current = Number.isFinite(y) ? y : null;
-                      setIsNoteEditing(true);
-                    }}
+                    onPressIn={() => {
+  setIsNoteEditing(true);
+}}
                     onSelectionChange={({ nativeEvent }) => {
                       noteSelectionRef.current = nativeEvent.selection;
                       setNoteSelection(nativeEvent.selection);
                     }}
-                    // Убрали onPressIn, так как TextInput сам обрабатывает фокус
                     onContentSizeChange={(event) => {
                       const height = event.nativeEvent.contentSize.height;
                       setNoteEditorHeight(Math.max(120, Math.ceil(height)));
                     }}
                     multiline
-                    scrollEnabled={false} // Скроллит родительский ScrollView
+                    scrollEnabled={isNoteEditing && noteKeyboardVisible}
                     showSoftInputOnFocus={true}
                     blurOnSubmit={false}
                     placeholder="Начни писать заметку…"
                     placeholderTextColor="#8B91A8"
-                    style={[styles.editorInput, { height: noteEditorHeight, flex: 0 }]}
+                    style={[
+  styles.editorInput,
+  {
+    height: isNoteEditing && noteKeyboardVisible
+      ? noteEditorViewportHeight
+      : noteEditorHeight,
+    flex: 0
+  }
+]}
                     textAlignVertical="top"
                     keyboardAppearance="dark"
                   />
@@ -1581,7 +1570,6 @@ if (activeScreen === 'notes') {
                       Keyboard.dismiss();
                       noteInputRef.current?.blur();
                       setIsNoteEditing(false);
-                      noteTouchYRef.current = null;
                       setNotePaletteVisible(true);
                     }}
                     style={{ 
