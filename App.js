@@ -439,14 +439,6 @@ function MainApp() {
       const selection = noteSelectionRef.current;
 
       setTimeout(() => {
-        if (selection) {
-          noteInputRef.current?.setNativeProps({
-            selection: {
-              start: selection.start,
-              end: selection.end
-            }
-          });
-        }
 
         const viewportHeight = noteViewportHeightRef.current;
         if (touchY !== null && Number.isFinite(touchY)) {
@@ -678,9 +670,6 @@ function MainApp() {
 
     setTimeout(() => {
       noteInputRef.current?.focus();
-      noteInputRef.current?.setNativeProps({
-        selection: nextSelection
-      });
     }, 150);
   };
   const toggleNoteReaction = (noteId, emoji) => {
@@ -1434,6 +1423,7 @@ if (activeScreen === 'notes') {
                   <TextInput
                     ref={noteInputRef}
                     value={noteText}
+                    selection={noteSelection}
                     onChangeText={updateNoteText}
                     onPressIn={(event) => {
                       const y = event.nativeEvent.locationY;
