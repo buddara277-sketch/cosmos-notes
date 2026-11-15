@@ -436,21 +436,32 @@ function MainApp() {
   useEffect(() => {
     const subscription = Keyboard.addListener('keyboardDidShow', () => {
       const touchY = noteTouchYRef.current;
-      if (touchY === null || !Number.isFinite(touchY)) return;
+      const selection = noteSelectionRef.current;
 
       setTimeout(() => {
-        const viewportHeight = noteViewportHeightRef.current;
-        const extra = touchY - viewportHeight + 64;
-
-        if (extra > 0) {
-          noteScrollRef.current?.scrollTo({
-            y: noteScrollOffsetRef.current + extra,
-            animated: true,
+        if (selection) {
+          noteInputRef.current?.setNativeProps({
+            selection: {
+              start: selection.start,
+              end: selection.end
+            }
           });
         }
 
+        const viewportHeight = noteViewportHeightRef.current;
+        if (touchY !== null && Number.isFinite(touchY)) {
+          const extra = touchY - viewportHeight + 64;
+
+          if (extra > 0) {
+            noteScrollRef.current?.scrollTo({
+              y: noteScrollOffsetRef.current + extra,
+              animated: true
+            });
+          }
+        }
+
         noteTouchYRef.current = null;
-      }, 180);
+      }, 250);
     });
 
     return () => subscription.remove();
@@ -662,17 +673,15 @@ function MainApp() {
     noteSelectionRef.current = nextSelection;
     setNoteSelection(nextSelection);
     updateNoteText(nextText);
-
-    Keyboard.dismiss();
-    noteInputRef.current?.blur();
-    setIsNoteEditing(false);
     setNotePaletteVisible(false);
+    setIsNoteEditing(true);
 
     setTimeout(() => {
+      noteInputRef.current?.focus();
       noteInputRef.current?.setNativeProps({
         selection: nextSelection
       });
-    }, 100);
+    }, 150);
   };
   const toggleNoteReaction = (noteId, emoji) => {
     const target = notes.find(note => note.id === noteId);
