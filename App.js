@@ -431,6 +431,9 @@ function MainApp() {
   const noteScrollOffsetRef = useRef(0);
   const noteTouchYRef = useRef(null);
   const noteKeyboardTopRef = useRef(null);
+  const noteSaveTimer = useRef(null);
+  const notesRef = useRef([]);
+  const notesLoadedRef = useRef(false);
 
   const scrollNoteCursorIntoView = () => {
     const touchY = noteTouchYRef.current;
@@ -1453,6 +1456,20 @@ if (activeScreen === 'notes') {
                     onContentSizeChange={(event) => {
                       const height = event.nativeEvent.contentSize.height;
                       setNoteEditorHeight(Math.max(120, Math.ceil(height)));
+
+                      const selection = noteSelectionRef.current;
+                      if (
+                        noteKeyboardVisible &&
+                        selection &&
+                        selection.start === selection.end &&
+                        selection.end >= noteText.length
+                      ) {
+                        setTimeout(() => {
+                          noteScrollRef.current?.scrollToEnd({
+                            animated: true,
+                          });
+                        }, 100);
+                      }
                     }}
                     multiline
                     scrollEnabled={false}
